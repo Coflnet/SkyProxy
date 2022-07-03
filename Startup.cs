@@ -1,8 +1,8 @@
 using System;
 using System.IO;
 using System.Reflection;
-using Coflnet.Sky.Base.Models;
-using Coflnet.Sky.Base.Services;
+using Coflnet.Sky.Proxy.Models;
+using Coflnet.Sky.Proxy.Services;
 using Coflnet.Sky.Core;
 using Jaeger.Samplers;
 using Jaeger.Senders;
@@ -19,7 +19,7 @@ using OpenTracing;
 using OpenTracing.Util;
 using Prometheus;
 
-namespace Coflnet.Sky.Base
+namespace Coflnet.Sky.Proxy
 {
     public class Startup
     {
@@ -36,7 +36,7 @@ namespace Coflnet.Sky.Base
             services.AddControllers();
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new OpenApiInfo { Title = "SkyBase", Version = "v1" });
+                c.SwaggerDoc("v1", new OpenApiInfo { Title = "SkyProxy", Version = "v1" });
                 // Set the comments path for the Swagger JSON and UI.
                 var xmlFile = $"{Assembly.GetExecutingAssembly().GetName().Name}.xml";
                 var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
@@ -50,7 +50,7 @@ namespace Coflnet.Sky.Base
             var serverVersion = new MariaDbServerVersion(new Version(Configuration["MARIADB_VERSION"]));
 
             // Replace 'YourDbContext' with the name of your own DbContext derived class.
-            services.AddDbContext<BaseDbContext>(
+            services.AddDbContext<ProxyDbContext>(
                 dbContextOptions => dbContextOptions
                     .UseMySql(Configuration["DB_CONNECTION"], serverVersion)
                     .EnableSensitiveDataLogging() // <-- These two calls are optional but help
@@ -59,6 +59,7 @@ namespace Coflnet.Sky.Base
             services.AddHostedService<BaseBackgroundService>();
             services.AddJaeger();
             services.AddTransient<BaseService>();
+            services.AddSingleton<NameProducer>();
             services.AddResponseCaching();
             services.AddResponseCompression();
         }
@@ -73,7 +74,7 @@ namespace Coflnet.Sky.Base
             app.UseSwagger();
             app.UseSwaggerUI(c =>
             {
-                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyBase v1");
+                c.SwaggerEndpoint("/swagger/v1/swagger.json", "SkyProxy v1");
                 c.RoutePrefix = "api";
             });
 

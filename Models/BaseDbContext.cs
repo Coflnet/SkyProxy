@@ -1,19 +1,19 @@
 using Microsoft.EntityFrameworkCore;
 
-namespace Coflnet.Sky.Base.Models
+namespace Coflnet.Sky.Proxy.Models
 {
     /// <summary>
     /// <see cref="DbContext"/> For flip tracking
     /// </summary>
-    public class BaseDbContext : DbContext
+    public class ProxyDbContext : DbContext
     {
-        public DbSet<Flip> Flips { get; set; }
+        public DbSet<ApiKey> Flips { get; set; }
 
         /// <summary>
-        /// Creates a new instance of <see cref="BaseDbContext"/>
+        /// Creates a new instance of <see cref="ProxyDbContext"/>
         /// </summary>
         /// <param name="options"></param>
-        public BaseDbContext(DbContextOptions<BaseDbContext> options)
+        public ProxyDbContext(DbContextOptions<ProxyDbContext> options)
         : base(options)
         {
         }
@@ -26,9 +26,9 @@ namespace Coflnet.Sky.Base.Models
         {
             base.OnModelCreating(modelBuilder);
 
-            modelBuilder.Entity<Flip>(entity =>
+            modelBuilder.Entity<ApiKey>(entity =>
             {
-                entity.HasIndex(e => new { e.AuctionId });
+                entity.HasIndex(e => new { e.LastUsed });
             });
         }
     }

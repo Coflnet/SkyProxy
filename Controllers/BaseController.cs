@@ -1,15 +1,15 @@
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
-using Coflnet.Sky.Base.Models;
+using Coflnet.Sky.Proxy.Models;
 using System;
 using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using System.Collections;
 using System.Collections.Generic;
-using Coflnet.Sky.Base.Services;
+using Coflnet.Sky.Proxy.Services;
 
-namespace Coflnet.Sky.Base.Controllers
+namespace Coflnet.Sky.Proxy.Controllers
 {
     /// <summary>
     /// Main Controller handling tracking
@@ -37,7 +37,7 @@ namespace Coflnet.Sky.Base.Controllers
         /// <returns></returns>
         [HttpPost]
         [Route("flip/{AuctionId}")]
-        public async Task<Flip> TrackFlip([FromBody] Flip flip, string AuctionId)
+        public async Task<ApiKey> TrackFlip([FromBody] ApiKey flip, string AuctionId)
         {
             await service.AddFlip(flip);
             return flip;
