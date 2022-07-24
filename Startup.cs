@@ -60,6 +60,13 @@ namespace Coflnet.Sky.Proxy
             services.AddJaeger();
             services.AddTransient<BaseService>();
             services.AddSingleton<NameProducer>();
+            services.AddSingleton<IMinecraftApiClient, MinecraftApiClient>();
+            services.AddSingleton<INameProducer, NameProducer>();
+            services.AddHostedService<BaseBackgroundService>();
+            services.AddHostedService<HypixelBackgroundService>();
+            services.AddScoped<KeyManager>();
+            services.AddSingleton<IIpRetriever, IpRetriever>();
+
             services.AddResponseCaching();
             services.AddResponseCompression();
         }

@@ -7,7 +7,7 @@ namespace Coflnet.Sky.Proxy.Models
     /// </summary>
     public class ProxyDbContext : DbContext
     {
-        public DbSet<ApiKey> Flips { get; set; }
+        public DbSet<ApiKey> ApiKeys { get; set; }
 
         /// <summary>
         /// Creates a new instance of <see cref="ProxyDbContext"/>

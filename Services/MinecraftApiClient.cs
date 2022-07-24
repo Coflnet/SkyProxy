@@ -9,9 +9,9 @@ namespace Coflnet.Sky.Proxy.Services;
 public class MinecraftApiClient : IMinecraftApiClient
 {
     private RestClient client;
-    public MinecraftApiClient(string url)
+    public MinecraftApiClient()
     {
-        client = new RestClient(url);
+        client = new RestClient("https://api.mojang.com");
     }
     public async Task<List<NameResponse>> LoadByNameBatch(List<PlayerNameUpdate> nameList)
     {

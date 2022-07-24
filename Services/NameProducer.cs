@@ -6,6 +6,7 @@ using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
 using Confluent.Kafka.Admin;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -26,9 +27,12 @@ public class NameProducer : IDisposable, INameProducer
         this.logger = logger;
         var producerConfig = new ProducerConfig
         {
-
+            BootstrapServers = config["KAFKA_HOST"],
+            ClientId = "SkyProxy"
         };
-        producer = new ProducerBuilder<Ignore, PlayerNameUpdate>(producerConfig).Build();
+        producer = new ProducerBuilder<Ignore, PlayerNameUpdate>(producerConfig)
+                    .SetValueSerializer(SerializerFactory.GetSerializer<PlayerNameUpdate>())
+                    .SetKeySerializer(SerializerFactory.GetSerializer<Ignore>()).Build();
 
         Task.Run(async () =>
         {
