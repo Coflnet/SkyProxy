@@ -24,6 +24,11 @@ namespace Coflnet.Sky.Proxy.Controllers
             this.keyManager = keyManager;
         }
 
+        /// <summary>
+        /// Proxy the path to hypixel using the assigned key (no key required)
+        /// </summary>
+        /// <param name="path"></param>
+        /// <returns></returns>
         [HttpGet]
         public async Task<string> Proxy(string path)
         {
@@ -32,7 +37,7 @@ namespace Coflnet.Sky.Proxy.Controllers
             request.AddQueryParameter("key", key);
             var response = await restClient.ExecuteAsync(request);
             await keyManager.UsedKey("hypixel", key);
-            return response.Content;
+            return response.Content.Replace(key,"<redacted key>");
         }
     }
 }

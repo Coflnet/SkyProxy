@@ -31,17 +31,15 @@ namespace Coflnet.Sky.Proxy.Controllers
         }
 
         /// <summary>
-        /// Tracks a flip
+        /// Request ah update for a player
         /// </summary>
-        /// <param name="flip"></param>
-        /// <param name="AuctionId"></param>
+        /// <param name="playerId"></param>
         /// <returns></returns>
         [HttpPost]
-        [Route("flip/{AuctionId}")]
-        public async Task<ApiKey> TrackFlip([FromBody] ApiKey flip, string AuctionId)
+        [Route("ah/{playerId}")]
+        public async Task RequestAhUpdate(string playerId)
         {
-            await service.AddFlip(flip);
-            return flip;
+            await service.UpdateAh(playerId);
         }
     }
 }

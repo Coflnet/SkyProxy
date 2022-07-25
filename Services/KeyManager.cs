@@ -42,14 +42,15 @@ public class KeyManager
     /// </summary>
     /// <param name="provider"></param>
     /// <param name="key"></param>
+    /// <param name="times"></param>
     /// <returns></returns>
-    public async Task UsedKey(string provider, string key)
+    public async Task UsedKey(string provider, string key, int times = 1)
     {
         var apiKey = await db.ApiKeys.Where(a => a.Party == provider && a.Key == key).FirstOrDefaultAsync();
         if (apiKey != null)
         {
             apiKey.LastUsed = System.DateTime.Now;
-            apiKey.UseCount++;
+            apiKey.UseCount += times;
             apiKey.LastServerIp = await ipRetriever.GetIp();
             await db.SaveChangesAsync();
         }

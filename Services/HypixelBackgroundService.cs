@@ -9,6 +9,7 @@ using System;
 using Microsoft.Extensions.Logging;
 using Prometheus;
 using Microsoft.Extensions.DependencyInjection;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -18,11 +19,13 @@ public class HypixelBackgroundService : BackgroundService
     private IConfiguration config;
     private ILogger<HypixelBackgroundService> logger;
     private IServiceScopeFactory scopeFactory;
-    public HypixelBackgroundService(IConfiguration config, ILogger<HypixelBackgroundService> logger, IServiceScopeFactory scopeFactory)
+    private ConnectionMultiplexer redis;
+    public HypixelBackgroundService(IConfiguration config, ILogger<HypixelBackgroundService> logger, IServiceScopeFactory scopeFactory, ConnectionMultiplexer redis)
     {
         this.config = config;
         this.logger = logger;
         this.scopeFactory = scopeFactory;
+        this.redis = redis;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -41,26 +44,60 @@ public class HypixelBackgroundService : BackgroundService
             key = await keyRetriever.GetKey("hypixel");
         }
         var lastUseSet = new DateTime();
-
-        await Coflnet.Kafka.KafkaConsumer.ConsumeBatch<string>(config["KAFKA_HOST"], config["TOPICS:USER_AH_UPDATE"], async batch =>
+        try
         {
-            foreach (var lp in batch)
-            {
-                await Sky.Updater.MissingChecker.UpdatePlayerAuctions(lp, p, key);
-            }
-            consumeCount.Inc(batch.Count());
+            await db.StreamCreateConsumerGroupAsync("ah-update", "sky-proxy-ah-update");
+        }
+        catch (System.Exception)
+        {
+            // ignore
+        }
 
-            if(lastUseSet < DateTime.Now-TimeSpan.FromMinutes(1))
+        var pollNoContentTimes = 0;
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            var elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 3);
+            if (elements.Count() == 0)
             {
-                // minimize db writes by not writing use every time
-                lastUseSet = DateTime.Now;
-                using (var scope = scopeFactory.CreateScope())
-                {
-                    var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
-                    await keyRetriever.UsedKey("hypixel", key);
-                }
+                await Task.Delay(500 * ++pollNoContentTimes);
+                continue;
             }
-        }, stoppingToken, "SkyProxy", 5);
-        p.Flush(TimeSpan.FromSeconds(10));
+            pollNoContentTimes = 0;
+            foreach (var item in elements)
+            {
+                var playerId = item["uuid"];
+                Console.WriteLine($"got PlayerId: {playerId}");
+                try
+                {
+                    await Sky.Updater.MissingChecker.UpdatePlayerAuctions(playerId, p, key);
+                    consumeCount.Inc();
+                }
+                catch (Exception e)
+                {
+                    logger.LogError(e, "error updating auctions");
+                    int attempt = ((int)item["try"]);
+                    if (attempt < 3)
+                        await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", playerId), new NameValueEntry("try", attempt + 1) });
+                }
+                await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
+            }
+            await UsedKey(key, lastUseSet, elements.Count());
+        }
+    }
+
+    private async Task<DateTime> UsedKey(string key, DateTime lastUseSet, int times = 1)
+    {
+        if (lastUseSet < DateTime.Now - TimeSpan.FromMinutes(1))
+        {
+            // minimize db writes by not writing use every time
+            lastUseSet = DateTime.Now;
+            using (var scope = scopeFactory.CreateScope())
+            {
+                var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
+                await keyRetriever.UsedKey("hypixel", key, times);
+            }
+        }
+
+        return lastUseSet;
     }
 }

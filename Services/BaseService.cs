@@ -5,6 +5,10 @@ using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using RestSharp;
 using Newtonsoft.Json;
+using Confluent.Kafka;
+using Microsoft.Extensions.Configuration;
+using Coflnet.Sky.Core;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.Proxy.Services
 {
@@ -17,16 +21,19 @@ namespace Coflnet.Sky.Proxy.Services
         /// </summary>
         /// <returns></returns>
         private static DateTime BlockedSince = new DateTime(0);
+        private IConfiguration config;
+        private ConnectionMultiplexer redis;
 
-        public BaseService(ProxyDbContext db)
+        public BaseService(ProxyDbContext db, IConfiguration config)
         {
             this.db = db;
+            this.config = config;
         }
 
-        public async Task<ApiKey> AddFlip(ApiKey flip)
+        public async Task UpdateAh(string playerId)
         {
-            
-            return flip;
+            var db = redis.GetDatabase();
+            var mId = db.StreamAdd("ah-update", "uuid", playerId);
         }
 
         public static string GetUuidFromPlayerName(string playerName)

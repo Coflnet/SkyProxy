@@ -18,6 +18,7 @@ using Microsoft.OpenApi.Models;
 using OpenTracing;
 using OpenTracing.Util;
 using Prometheus;
+using StackExchange.Redis;
 
 namespace Coflnet.Sky.Proxy
 {
@@ -66,6 +67,10 @@ namespace Coflnet.Sky.Proxy
             services.AddHostedService<HypixelBackgroundService>();
             services.AddScoped<KeyManager>();
             services.AddSingleton<IIpRetriever, IpRetriever>();
+            services.AddSingleton<ConnectionMultiplexer>(sp =>
+            {
+                return  ConnectionMultiplexer.Connect(Configuration["REDIS_HOST"]);
+            });
 
             services.AddResponseCaching();
             services.AddResponseCompression();
