@@ -30,6 +30,7 @@ namespace Coflnet.Sky.Proxy.Controllers
         /// <param name="path"></param>
         /// <returns></returns>
         [HttpGet]
+        [Route("hypixel")]
         public async Task<string> Proxy(string path)
         {
             var request = new RestRequest(path, Method.GET);
