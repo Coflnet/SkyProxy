@@ -44,6 +44,7 @@ public class HypixelBackgroundService : BackgroundService
             key = await keyRetriever.GetKey("hypixel");
         }
         var lastUseSet = new DateTime();
+        var db = redis.GetDatabase();
         try
         {
             await db.StreamCreateConsumerGroupAsync("ah-update", "sky-proxy-ah-update");
