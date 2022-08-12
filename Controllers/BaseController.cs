@@ -41,5 +41,12 @@ namespace Coflnet.Sky.Proxy.Controllers
         {
             await service.UpdateAh(playerId);
         }
+
+        [HttpPost]
+        [Route("key")]
+        public async Task AddKey([FromBody] KeyCreate model)
+        {
+            await service.AddKey(model.Key, model.Party, model.Owner);
+        }
     }
 }

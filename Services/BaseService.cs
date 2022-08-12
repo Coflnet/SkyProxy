@@ -56,6 +56,12 @@ namespace Coflnet.Sky.Proxy.Services
             return responseDeserialized.id;
         }
 
+        internal async Task AddKey(string key, string party, string owner)
+        {
+            db.ApiKeys.Add(new ApiKey { Key = key, Party = party, Owner = owner });
+            await db.SaveChangesAsync();
+        }
+
         /// <summary>
         /// Downloads username for a given uuid from mojang.
         /// Will return null if rate limit reached.
