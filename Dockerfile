@@ -2,6 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:6.0 as build
 WORKDIR /build
 RUN git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev
 RUN git clone --depth=1 https://github.com/Coflnet/SkyUpdater.git
+RUN git clone --depth=1 https://github.com/Ekwav/Hypixel.NET.git
 WORKDIR /build/sky
 COPY SkyProxy.csproj SkyProxy.csproj
 RUN dotnet restore
