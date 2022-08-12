@@ -39,12 +39,6 @@ public class BaseBackgroundService : BackgroundService
     /// <returns></returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        using (var scope = scopeFactory.CreateScope())
-        using (var context = scope.ServiceProvider.GetRequiredService<ProxyDbContext>())
-            // make sure all migrations are applied
-            await context.Database.MigrateAsync();
-
-
 
         var toUpdateCons = Coflnet.Kafka.KafkaConsumer.ConsumeBatch<PlayerNameUpdate>(config["KAFKA_HOST"], config["TOPICS:NAME_UPDATE_REQUEST"], async batch =>
         {

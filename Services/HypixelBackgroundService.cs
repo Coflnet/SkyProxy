@@ -10,6 +10,7 @@ using Microsoft.Extensions.Logging;
 using Prometheus;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
+using Microsoft.EntityFrameworkCore;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -37,12 +38,7 @@ public class HypixelBackgroundService : BackgroundService
         };
         using var p = new ProducerBuilder<string, SaveAuction>(producerConfig).SetValueSerializer(SerializerFactory.GetSerializer<SaveAuction>()).Build();
 
-        string key = null;
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
-            key = await keyRetriever.GetKey("hypixel");
-        }
+
         var lastUseSet = new DateTime();
         var db = redis.GetDatabase();
         try
@@ -52,6 +48,20 @@ public class HypixelBackgroundService : BackgroundService
         catch (System.Exception)
         {
             // ignore
+        }
+
+
+        using (var scope = scopeFactory.CreateScope())
+        using (var context = scope.ServiceProvider.GetRequiredService<Models.ProxyDbContext>())
+        {
+            // make sure all migrations are applied
+            await context.Database.MigrateAsync();
+        }
+        string key = null;
+        using (var scope = scopeFactory.CreateScope())
+        {
+            var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
+            key = await keyRetriever.GetKey("hypixel");
         }
 
         var pollNoContentTimes = 0;
