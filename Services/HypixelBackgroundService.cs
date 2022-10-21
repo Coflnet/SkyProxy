@@ -61,8 +61,18 @@ public class HypixelBackgroundService : BackgroundService
         using (var scope = scopeFactory.CreateScope())
         {
             var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
-            key = await keyRetriever.GetKey("hypixel");
+            while (key == null)
+                try
+                {
+                    key = await keyRetriever.GetKey("hypixel");
+                }
+                catch (CoflnetException e)
+                {
+                    logger.LogInformation(e.Message);
+                    await Task.Delay(15000);
+                }
         }
+        logger.LogInformation("retrieved key, start processing");
 
         var pollNoContentTimes = 0;
         while (!stoppingToken.IsCancellationRequested)
@@ -98,10 +108,10 @@ public class HypixelBackgroundService : BackgroundService
 
     private async Task<DateTime> UsedKey(string key, DateTime lastUseSet, int times = 1)
     {
-        if (lastUseSet < DateTime.Now - TimeSpan.FromMinutes(1))
+        if (lastUseSet < DateTime.UtcNow - TimeSpan.FromMinutes(1))
         {
             // minimize db writes by not writing use every time
-            lastUseSet = DateTime.Now;
+            lastUseSet = DateTime.UtcNow;
             using (var scope = scopeFactory.CreateScope())
             {
                 var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();

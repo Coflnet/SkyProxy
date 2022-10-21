@@ -33,7 +33,7 @@ namespace Coflnet.Sky.Proxy.Controllers
         [Route("hypixel")]
         public async Task<string> Proxy(string path)
         {
-            var request = new RestRequest(path, Method.GET);
+            var request = new RestRequest(path, Method.Get);
             var key = await keyManager.GetKey("hypixel");
             request.AddQueryParameter("key", key);
             var response = await restClient.ExecuteAsync(request);

@@ -53,7 +53,7 @@ namespace Coflnet.Sky.Proxy
             // Replace 'YourDbContext' with the name of your own DbContext derived class.
             services.AddDbContext<ProxyDbContext>(
                 dbContextOptions => dbContextOptions
-                    .UseMySql(Configuration["DB_CONNECTION"], serverVersion)
+                    .UseNpgsql(Configuration["DB_CONNECTION"])
                     .EnableSensitiveDataLogging() // <-- These two calls are optional but help
                     .EnableDetailedErrors()       // <-- with debugging (remove for production).
             );

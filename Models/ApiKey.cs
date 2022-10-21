@@ -23,8 +23,7 @@ namespace Coflnet.Sky.Proxy.Models
         public string LastServerIp { get; set; }
         public int UseCount { get; set; }
         public bool IsValid { get; set; } = true;
-        [DatabaseGenerated(DatabaseGeneratedOption.Computed)]
-        public DateTime LastUsed { get; set; }
-        public DateTime Created { get; set; } = DateTime.Now;
+        public DateTime LastUsed { get; set; }  = DateTime.UtcNow;
+        public DateTime Created { get; set; } = DateTime.UtcNow;
     }
 }

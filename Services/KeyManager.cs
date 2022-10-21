@@ -30,11 +30,11 @@ public class KeyManager
             return key.Key;
 
         // get key not in use
-        var maxTime = System.DateTime.Now.Subtract(TimeSpan.FromHours(20));
+        var maxTime = System.DateTime.UtcNow.Subtract(TimeSpan.FromHours(20));
         key = await db.ApiKeys.Where(a => a.Party == provider && a.IsValid && (a.LastServerIp == null || a.LastServerIp != null && a.LastUsed < maxTime)).FirstOrDefaultAsync();
         if (key == null)
             throw new Coflnet.Sky.Core.CoflnetException("no_key", $"No key for {provider} is available for this server ({myIp})");
-        return key.Key;
+        return key?.Key;
     }
 
     /// <summary>
@@ -49,7 +49,7 @@ public class KeyManager
         var apiKey = await db.ApiKeys.Where(a => a.Party == provider && a.Key == key).FirstOrDefaultAsync();
         if (apiKey != null)
         {
-            apiKey.LastUsed = System.DateTime.Now;
+            apiKey.LastUsed = System.DateTime.UtcNow;
             apiKey.UseCount += times;
             apiKey.LastServerIp = await ipRetriever.GetIp();
             await db.SaveChangesAsync();

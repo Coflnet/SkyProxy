@@ -15,7 +15,7 @@ public class MinecraftApiClient : IMinecraftApiClient
     }
     public async Task<List<NameResponse>> LoadByNameBatch(List<PlayerNameUpdate> nameList)
     {
-        var request = new RestRequest("profiles/minecraft", Method.POST);
+        var request = new RestRequest("profiles/minecraft", Method.Post);
         request.AddJsonBody(nameList.Where(n => n.Name != null).Select(x => x.Name));
         var response = await client.ExecuteAsync(request);
         var responseJson = Newtonsoft.Json.JsonConvert.DeserializeObject<List<NameResponse>>(response.Content);
@@ -24,7 +24,7 @@ public class MinecraftApiClient : IMinecraftApiClient
 
     public async Task<NameResponse> GetNameByUuid(string uuid)
     {
-        var request = new RestRequest($"user/profile/{uuid}", Method.GET);
+        var request = new RestRequest($"user/profile/{uuid}", Method.Get);
         var response = await client.ExecuteAsync(request);
         var responseJson = Newtonsoft.Json.JsonConvert.DeserializeObject<NameResponse>(response.Content);
         return responseJson;

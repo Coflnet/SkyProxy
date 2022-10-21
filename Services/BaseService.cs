@@ -40,7 +40,7 @@ namespace Coflnet.Sky.Proxy.Services
         {
             //Create the request
             var client = new RestClient("https://api.mojang.com/");
-            var request = new RestRequest($"users/profiles/minecraft/{playerName}", Method.GET);
+            var request = new RestRequest($"users/profiles/minecraft/{playerName}", Method.Get);
 
             //Get the response and Deserialize
             var response = client.Execute(request);
@@ -58,6 +58,8 @@ namespace Coflnet.Sky.Proxy.Services
 
         internal async Task AddKey(string key, string party, string owner)
         {
+            if(await db.ApiKeys.Where(k=>k.Key == key && k.Party == party).AnyAsync())
+                return; // already exists
             db.ApiKeys.Add(new ApiKey { Key = key, Party = party, Owner = owner });
             await db.SaveChangesAsync();
         }
@@ -70,7 +72,7 @@ namespace Coflnet.Sky.Proxy.Services
         /// <returns>The name or null if error occurs</returns>
         public async Task<string> GetPlayerNameFromUuid(string uuid)
         {
-            if (DateTime.Now.Subtract(new TimeSpan(0, 10, 0)) < BlockedSince && RequestsSinceStart >= 2000)
+            if (DateTime.UtcNow.Subtract(new TimeSpan(0, 10, 0)) < BlockedSince && RequestsSinceStart >= 2000)
             {
                 //Console.Write("Blocked");
                 // blocked
@@ -89,24 +91,24 @@ namespace Coflnet.Sky.Proxy.Services
 
             if (RequestsSinceStart == 600)
             {
-                BlockedSince = DateTime.Now;
+                BlockedSince = DateTime.UtcNow;
             }
 
             if (RequestsSinceStart < 600)
             {
                 client = new RestClient("https://api.mojang.com/");
-                request = new RestRequest($"user/profiles/{uuid}/names", Method.GET);
+                request = new RestRequest($"user/profiles/{uuid}/names", Method.Get);
             }
             else if (RequestsSinceStart < 1500)
             {
                 client = new RestClient("https://mc-heads.net/");
-                request = new RestRequest($"/minecraft/profile/{uuid}", Method.GET);
+                request = new RestRequest($"/minecraft/profile/{uuid}", Method.Get);
                 type = 1;
             }
             else
             {
                 client = new RestClient("https://minecraft-api.com/");
-                request = new RestRequest($"/api/uuid/pseudo.php?uuid={uuid}", Method.GET);
+                request = new RestRequest($"/api/uuid/pseudo.php?uuid={uuid}", Method.Get);
                 type = 2;
             }
 
