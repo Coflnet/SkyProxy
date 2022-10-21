@@ -19,13 +19,13 @@
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)' != 'Release'">
     <PackageReference Include="Moq" Version="4.18.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.7" />
     <PackageReference Include="nunit" Version="3.13.2" />
     <PackageReference Include="NUnit3TestAdapter" Version="4.2.1" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.1.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="6.0.7" />
     <PackageReference Include="Confluent.Kafka" Version="1.7.0" />
     <PackageReference Include="Jaeger.Core" Version="1.0.3" />
     <PackageReference Include="Jaeger.Senders.Thrift" Version="1.0.3" />
