@@ -16,6 +16,7 @@ namespace Coflnet.Sky.Proxy.Controllers
     [Route("[controller]")]
     public class ProxyController : ControllerBase
     {
+        private static Prometheus.Counter playerUuidAhRequests = Prometheus.Metrics.CreateCounter("sky_proxy_player_auctions_load", "The count of player which auctions were loaded");
         private readonly RestClient restClient = new RestClient("https://api.hypixel.net");
         private readonly KeyManager keyManager;
 
@@ -61,6 +62,7 @@ namespace Coflnet.Sky.Proxy.Controllers
             var minEnd = System.DateTime.UtcNow - System.TimeSpan.FromSeconds(maxAgeSeconds);
             if (maxAgeSeconds == 0)
                 minEnd = new System.DateTime(2019, 1, 1);
+            playerUuidAhRequests.Inc();
             return auctions.Where(a => a.End > minEnd);
         }
 
