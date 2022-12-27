@@ -120,6 +120,8 @@ public class HypixelBackgroundService : BackgroundService
                     key = null;
                     await Task.Delay(Random.Shared.Next(1000, 500000));
                 }
+                else
+                    await keyRetriever.UsedKey("hypixel", key);
             }
             catch (CoflnetException e)
             {

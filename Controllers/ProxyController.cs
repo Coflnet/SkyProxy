@@ -56,7 +56,7 @@ namespace Coflnet.Sky.Proxy.Controllers
         [Route("hypixel/ah/player/{playerUuid}")]
         public async Task<IEnumerable<SaveAuction>> ProxyPlayerAh(string playerUuid, [FromServices] MissingChecker missingChecker, int maxAgeSeconds = 0)
         {
-            var key = await keyManager.GetKey("hypixel");
+            var key = await keyManager.GetKey("hypixel", 1);
             var auctions = await missingChecker.GetAuctionOfPlayer(playerUuid,key);
             var minEnd = System.DateTime.UtcNow - System.TimeSpan.FromSeconds(maxAgeSeconds);
             if(maxAgeSeconds == 0)

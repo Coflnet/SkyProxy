@@ -22,7 +22,14 @@ public class KeyManager
         this.ipRetriever = ipRetriever;
     }
 
-    public async Task<string> GetKey(string provider)
+    /// <summary>
+    /// Returns an api key
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <param name="addUses">How many usages to add</param>
+    /// <returns></returns>
+    /// <exception cref="Coflnet.Sky.Core.CoflnetException"></exception>
+    public async Task<string> GetKey(string provider, int addUses = 0)
     {
         var myIp = await ipRetriever.GetIp();
         var key = await db.ApiKeys.Where(a => a.Party == provider && a.IsValid && a.LastServerIp == myIp).FirstOrDefaultAsync();
@@ -34,6 +41,8 @@ public class KeyManager
         key = await db.ApiKeys.Where(a => a.Party == provider && a.IsValid && (a.LastServerIp == null || a.LastServerIp != null && a.LastUsed < maxTime)).FirstOrDefaultAsync();
         if (key == null)
             throw new Coflnet.Sky.Core.CoflnetException("no_key", $"No key for {provider} is available for this server ({myIp})");
+        if(addUses > 0)
+            await StoreUse(addUses, key);
         return key?.Key;
     }
 
@@ -63,6 +72,11 @@ public class KeyManager
     public async Task UsedKey(string provider, string key, int times = 1)
     {
         var apiKey = await db.ApiKeys.Where(a => a.Party == provider && a.Key == key).FirstOrDefaultAsync();
+        await StoreUse(times, apiKey);
+    }
+
+    private async Task StoreUse(int times, ApiKey apiKey)
+    {
         if (apiKey != null)
         {
             apiKey.LastUsed = System.DateTime.UtcNow;
