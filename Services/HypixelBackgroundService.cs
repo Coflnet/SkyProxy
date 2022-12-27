@@ -68,6 +68,22 @@ public class HypixelBackgroundService : BackgroundService
         key = await GetValidKey(key);
         logger.LogInformation("retrieved key, start processing");
 
+        _ = Task.Run(async () =>
+        {
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                await Task.Delay(1000 * 60 * 60);
+                try
+                {
+                    key = await GetValidKey(key);
+                }
+                catch (System.Exception e)
+                {
+                    logger.LogError(e, "error getting key");
+                }
+            }
+        }, stoppingToken);
+
         var pollNoContentTimes = 0;
         while (!stoppingToken.IsCancellationRequested)
         {

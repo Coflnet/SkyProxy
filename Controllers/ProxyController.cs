@@ -42,7 +42,7 @@ namespace Coflnet.Sky.Proxy.Controllers
             request.AddQueryParameter("key", key);
             var response = await restClient.ExecuteAsync(request);
             await keyManager.UsedKey("hypixel", key);
-            return response.Content.Replace(key,"<redacted key>");
+            return response.Content.Replace(key, "<redacted key>");
         }
 
         /// <summary>
@@ -57,11 +57,11 @@ namespace Coflnet.Sky.Proxy.Controllers
         public async Task<IEnumerable<SaveAuction>> ProxyPlayerAh(string playerUuid, [FromServices] MissingChecker missingChecker, int maxAgeSeconds = 0)
         {
             var key = await keyManager.GetKey("hypixel", 1);
-            var auctions = await missingChecker.GetAuctionOfPlayer(playerUuid,key);
+            var auctions = await missingChecker.GetAuctionOfPlayer(playerUuid, key);
             var minEnd = System.DateTime.UtcNow - System.TimeSpan.FromSeconds(maxAgeSeconds);
-            if(maxAgeSeconds == 0)
+            if (maxAgeSeconds == 0)
                 minEnd = new System.DateTime(2019, 1, 1);
-            return auctions.Where(a=>a.End > minEnd);
+            return auctions.Where(a => a.End > minEnd);
         }
 
         /// <summary>
@@ -69,9 +69,17 @@ namespace Coflnet.Sky.Proxy.Controllers
         /// </summary>
         [HttpGet]
         [Route("hypixel/status")]
-        public async Task CanyProxy()
+        public async Task<ActionResult> CanyProxy()
         {
-            await keyManager.GetKey("hypixel");
+            try
+            {
+                await keyManager.GetKey("hypixel");
+            }
+            catch (System.Exception)
+            {
+                return StatusCode(503);
+            }
+            return Ok();
         }
     }
 }
