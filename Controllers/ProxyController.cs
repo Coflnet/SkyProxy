@@ -59,8 +59,8 @@ namespace Coflnet.Sky.Proxy.Controllers
             var key = await keyManager.GetKey("hypixel");
             var auctions = await missingChecker.GetAuctionOfPlayer(playerUuid,key);
             var minEnd = System.DateTime.UtcNow - System.TimeSpan.FromSeconds(maxAgeSeconds);
-            if(maxAgeSeconds > 0)
-                minEnd = new System.DateTime(2019, 0, 0);
+            if(maxAgeSeconds == 0)
+                minEnd = new System.DateTime(2019, 1, 1);
             return auctions.Where(a=>a.End > minEnd);
         }
 
