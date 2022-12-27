@@ -21,7 +21,7 @@ public class BaseBackgroundService : BackgroundService
     private ILogger<BaseBackgroundService> logger;
     private IMinecraftApiClient minecraftApiClient;
     private INameProducer producer;
-    private Prometheus.Counter consumeCount = Prometheus.Metrics.CreateCounter("sky_base_conume", "How many messages were consumed");
+    private Prometheus.Counter consumeCount = Prometheus.Metrics.CreateCounter("sky_base_consume", "How many messages were consumed");
 
     public BaseBackgroundService(
         IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<BaseBackgroundService> logger, IMinecraftApiClient minecraftApiClient, INameProducer producer)
