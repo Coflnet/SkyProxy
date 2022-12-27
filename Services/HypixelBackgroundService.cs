@@ -7,10 +7,11 @@ using System.Linq;
 using Coflnet.Sky.Core;
 using System;
 using Microsoft.Extensions.Logging;
-using Prometheus;
+using Coflnet.Sky.Updater;
 using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using Microsoft.EntityFrameworkCore;
+using RestSharp;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -21,12 +22,18 @@ public class HypixelBackgroundService : BackgroundService
     private ILogger<HypixelBackgroundService> logger;
     private IServiceScopeFactory scopeFactory;
     private ConnectionMultiplexer redis;
-    public HypixelBackgroundService(IConfiguration config, ILogger<HypixelBackgroundService> logger, IServiceScopeFactory scopeFactory, ConnectionMultiplexer redis)
+    private MissingChecker missingChecker;
+    public HypixelBackgroundService(IConfiguration config,
+                                    ILogger<HypixelBackgroundService> logger,
+                                    IServiceScopeFactory scopeFactory,
+                                    ConnectionMultiplexer redis,
+                                    MissingChecker missingChecker)
     {
         this.config = config;
         this.logger = logger;
         this.scopeFactory = scopeFactory;
         this.redis = redis;
+        this.missingChecker = missingChecker;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -58,20 +65,7 @@ public class HypixelBackgroundService : BackgroundService
             await context.Database.MigrateAsync();
         }
         string key = null;
-        using (var scope = scopeFactory.CreateScope())
-        {
-            var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
-            while (key == null)
-                try
-                {
-                    key = await keyRetriever.GetKey("hypixel");
-                }
-                catch (CoflnetException e)
-                {
-                    logger.LogInformation(e.Message);
-                    await Task.Delay(15000);
-                }
-        }
+        key = await GetValidKey(key);
         logger.LogInformation("retrieved key, start processing");
 
         var pollNoContentTimes = 0;
@@ -90,7 +84,7 @@ public class HypixelBackgroundService : BackgroundService
                 Console.WriteLine($"got PlayerId: {playerId}");
                 try
                 {
-                    await Sky.Updater.MissingChecker.UpdatePlayerAuctions(playerId, p, key);
+                    await missingChecker.UpdatePlayerAuctions(playerId, p, key);
                     consumeCount.Inc();
                 }
                 catch (Exception e)
@@ -104,6 +98,36 @@ public class HypixelBackgroundService : BackgroundService
             }
             await UsedKey(key, lastUseSet, elements.Count());
         }
+    }
+
+    private async Task<string> GetValidKey(string key)
+    {
+        using var scope = scopeFactory.CreateScope();
+        var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
+        while (key == null)
+            try
+            {
+                key = await keyRetriever.GetKey("hypixel");
+                var client = new RestClient("https://api.hypixel.net/");
+                var request = new RestRequest($"key?key={key}", Method.Get);
+
+                //Get the response and Deserialize
+                var response = client.Execute(request);
+                if (response.StatusCode == System.Net.HttpStatusCode.Forbidden)
+                {
+                    logger.LogInformation($"key `{key.Truncate(10)}`is invalid");
+                    await keyRetriever.InvalidateKey("hypixel", key);
+                    key = null;
+                    await Task.Delay(Random.Shared.Next(1000, 500000));
+                }
+            }
+            catch (CoflnetException e)
+            {
+                logger.LogInformation(e.Message);
+                await Task.Delay(15000);
+            }
+
+        return key;
     }
 
     private async Task<DateTime> UsedKey(string key, DateTime lastUseSet, int times = 1)

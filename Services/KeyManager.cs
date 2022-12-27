@@ -38,6 +38,22 @@ public class KeyManager
     }
 
     /// <summary>
+    /// Mark key as invalid
+    /// </summary>
+    /// <param name="provider"></param>
+    /// <param name="key"></param>
+    /// <returns></returns>
+    public async Task InvalidateKey(string provider, string key)
+    {
+        var apiKey = await db.ApiKeys.Where(a => a.Party == provider && a.Key == key).FirstOrDefaultAsync();
+        if (apiKey != null)
+        {
+            apiKey.IsValid = false;
+            await db.SaveChangesAsync();
+        }
+    }
+
+    /// <summary>
     /// 
     /// </summary>
     /// <param name="provider"></param>

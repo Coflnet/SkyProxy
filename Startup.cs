@@ -4,19 +4,14 @@ using System.Reflection;
 using Coflnet.Sky.Proxy.Models;
 using Coflnet.Sky.Proxy.Services;
 using Coflnet.Sky.Core;
-using Jaeger.Samplers;
-using Jaeger.Senders;
-using Jaeger.Senders.Thrift;
+using Coflnet.Sky.Updater;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using Microsoft.Extensions.Logging;
 using Microsoft.OpenApi.Models;
-using OpenTracing;
-using OpenTracing.Util;
 using Prometheus;
 using StackExchange.Redis;
 
@@ -58,7 +53,7 @@ namespace Coflnet.Sky.Proxy
                     .EnableDetailedErrors()       // <-- with debugging (remove for production).
             );
             services.AddHostedService<BaseBackgroundService>();
-            services.AddJaeger();
+            services.AddJaeger(Configuration);
             services.AddTransient<BaseService>();
             services.AddSingleton<NameProducer>();
             services.AddSingleton<IMinecraftApiClient, MinecraftApiClient>();
@@ -67,6 +62,7 @@ namespace Coflnet.Sky.Proxy
             services.AddHostedService<HypixelBackgroundService>();
             services.AddScoped<KeyManager>();
             services.AddSingleton<IIpRetriever, IpRetriever>();
+            services.AddSingleton<MissingChecker>();
             services.AddSingleton<ConnectionMultiplexer>(sp =>
             {
                 return  ConnectionMultiplexer.Connect(Configuration["REDIS_HOST"]);
