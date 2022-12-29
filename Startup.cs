@@ -59,7 +59,8 @@ namespace Coflnet.Sky.Proxy
             services.AddSingleton<IMinecraftApiClient, MinecraftApiClient>();
             services.AddSingleton<INameProducer, NameProducer>();
             services.AddHostedService<BaseBackgroundService>();
-            services.AddHostedService<HypixelBackgroundService>();
+            services.AddSingleton<HypixelBackgroundService>();
+            services.AddHostedService<HypixelBackgroundService>(sp => sp.GetService<HypixelBackgroundService>());
             services.AddScoped<KeyManager>();
             services.AddSingleton<IIpRetriever, IpRetriever>();
             services.AddSingleton<MissingChecker>();

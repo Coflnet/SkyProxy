@@ -6,6 +6,8 @@ using Coflnet.Sky.Core;
 using System.Collections.Generic;
 using Coflnet.Sky.Updater;
 using System.Linq;
+using Microsoft.Extensions.Logging;
+using System;
 
 namespace Coflnet.Sky.Proxy.Controllers
 {
@@ -51,11 +53,12 @@ namespace Coflnet.Sky.Proxy.Controllers
         /// </summary>
         /// <param name="playerUuid"></param>
         /// <param name="missingChecker"></param>
+        /// <param name="backgroundService"></param>
         /// <param name="maxAgeSeconds">prefilter auctions to end in the future or less than x seconds ago, 0 is no limit (default)</param>
         /// <returns></returns>
         [HttpGet]
         [Route("hypixel/ah/player/{playerUuid}")]
-        public async Task<IEnumerable<SaveAuction>> ProxyPlayerAh(string playerUuid, [FromServices] MissingChecker missingChecker, int maxAgeSeconds = 0)
+        public async Task<IEnumerable<SaveAuction>> ProxyPlayerAh(string playerUuid, [FromServices] MissingChecker missingChecker, [FromServices] HypixelBackgroundService backgroundService, int maxAgeSeconds = 0)
         {
             var key = await keyManager.GetKey("hypixel", 1);
             var auctions = await missingChecker.GetAuctionOfPlayer(playerUuid, key);
@@ -63,6 +66,9 @@ namespace Coflnet.Sky.Proxy.Controllers
             if (maxAgeSeconds == 0)
                 minEnd = new System.DateTime(2019, 1, 1);
             playerUuidAhRequests.Inc();
+
+            missingChecker.ProduceAuctions(backgroundService.AuctionProducer, new("pre-api", "hint"), auctions);
+
             return auctions.Where(a => a.End > minEnd);
         }
 

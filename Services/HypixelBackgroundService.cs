@@ -23,6 +23,10 @@ public class HypixelBackgroundService : BackgroundService
     private IServiceScopeFactory scopeFactory;
     private ConnectionMultiplexer redis;
     private MissingChecker missingChecker;
+    /// <summary>
+    /// Auction producer for kafka
+    /// </summary>
+    public IProducer<string, SaveAuction> AuctionProducer;
     public HypixelBackgroundService(IConfiguration config,
                                     ILogger<HypixelBackgroundService> logger,
                                     IServiceScopeFactory scopeFactory,
@@ -43,7 +47,7 @@ public class HypixelBackgroundService : BackgroundService
             BootstrapServers = SimplerConfig.Config.Instance["KAFKA_HOST"],
             LingerMs = 100,
         };
-        using var p = new ProducerBuilder<string, SaveAuction>(producerConfig).SetValueSerializer(SerializerFactory.GetSerializer<SaveAuction>()).Build();
+        AuctionProducer = new ProducerBuilder<string, SaveAuction>(producerConfig).SetValueSerializer(SerializerFactory.GetSerializer<SaveAuction>()).Build();
 
 
         var lastUseSet = new DateTime();
@@ -100,7 +104,7 @@ public class HypixelBackgroundService : BackgroundService
                 Console.WriteLine($"got PlayerId: {playerId}");
                 try
                 {
-                    await missingChecker.UpdatePlayerAuctions(playerId, p, key);
+                    await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key);
                     consumeCount.Inc();
                 }
                 catch (Exception e)
