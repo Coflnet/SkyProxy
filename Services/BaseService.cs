@@ -24,10 +24,11 @@ namespace Coflnet.Sky.Proxy.Services
         private IConfiguration config;
         private ConnectionMultiplexer redis;
 
-        public BaseService(ProxyDbContext db, IConfiguration config)
+        public BaseService(ProxyDbContext db, IConfiguration config, ConnectionMultiplexer redis)
         {
             this.db = db;
             this.config = config;
+            this.redis = redis;
         }
 
         public async Task UpdateAh(string playerId)
