@@ -104,7 +104,7 @@ public class HypixelBackgroundService : BackgroundService
                 Console.WriteLine($"got PlayerId: {playerId}");
                 try
                 {
-                    await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key);
+                    await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
                     consumeCount.Inc();
                 }
                 catch (Exception e)
