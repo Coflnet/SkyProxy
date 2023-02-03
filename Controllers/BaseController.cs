@@ -48,5 +48,11 @@ namespace Coflnet.Sky.Proxy.Controllers
         {
             await service.AddKey(model.Key, model.Party, model.Owner);
         }
+        [HttpPost]
+        [Route("keys/{party}/count")]
+        public async Task<int> GetActiveKeyCount(string party)
+        {
+            return await service.GetActiveKeyCount(party);
+        }
     }
 }
