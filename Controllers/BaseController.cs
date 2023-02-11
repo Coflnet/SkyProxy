@@ -55,5 +55,12 @@ namespace Coflnet.Sky.Proxy.Controllers
         {
             return await service.GetActiveKeyCount(party);
         }
+
+        [HttpGet]
+        [Route("keys/{party}/invalid")]
+        public async Task<IEnumerable<ApiKey>> GetInactiveKeys(string party, int count = 10)
+        {
+            return await service.GetInactiveKeys(party, count);
+        }
     }
 }

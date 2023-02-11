@@ -9,6 +9,7 @@ using Confluent.Kafka;
 using Microsoft.Extensions.Configuration;
 using Coflnet.Sky.Core;
 using StackExchange.Redis;
+using System.Collections.Generic;
 
 namespace Coflnet.Sky.Proxy.Services
 {
@@ -156,6 +157,11 @@ namespace Coflnet.Sky.Proxy.Services
             }
 
             return responseDeserialized.name;
+        }
+
+        internal async Task<IEnumerable<ApiKey>> GetInactiveKeys(string party, int count)
+        {
+            return await db.ApiKeys.Where(k => k.Party == party && !k.IsValid).OrderByDescending(k => k.LastUsed).Take(count).ToListAsync();
         }
     }
 }
