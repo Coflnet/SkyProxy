@@ -88,10 +88,24 @@ public class HypixelBackgroundService : BackgroundService
             }
         }, stoppingToken);
 
+        await ExecutePull(lastUseSet, db, key, stoppingToken);
+    }
+
+    private async Task ExecutePull(DateTime lastUseSet, IDatabase db, string key, CancellationToken stoppingToken)
+    {
         var pollNoContentTimes = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
-            var elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 3);
+            StreamEntry[] elements;
+            try
+            {
+                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 3);
+            }
+            catch (RedisTimeoutException)
+            {
+                logger.LogInformation("redis timeout while reading stream. Trying again");
+                continue;
+            }
             if (elements.Count() == 0)
             {
                 await Task.Delay(500 * ++pollNoContentTimes);
