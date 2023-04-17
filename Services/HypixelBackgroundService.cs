@@ -127,6 +127,7 @@ public class HypixelBackgroundService : BackgroundService
                     int attempt = ((int)item["try"]);
                     if (attempt < 3)
                         await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", playerId), new NameValueEntry("try", attempt + 1) });
+                    await Task.Delay(1000); // back off in favor of another instance
                 }
                 await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
             }
