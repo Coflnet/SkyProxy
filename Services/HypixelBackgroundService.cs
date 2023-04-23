@@ -23,6 +23,7 @@ public class HypixelBackgroundService : BackgroundService
     private IServiceScopeFactory scopeFactory;
     private ConnectionMultiplexer redis;
     private MissingChecker missingChecker;
+    private Kafka.KafkaCreator kafkaCreator;
     /// <summary>
     /// Auction producer for kafka
     /// </summary>
@@ -31,13 +32,15 @@ public class HypixelBackgroundService : BackgroundService
                                     ILogger<HypixelBackgroundService> logger,
                                     IServiceScopeFactory scopeFactory,
                                     ConnectionMultiplexer redis,
-                                    MissingChecker missingChecker)
+                                    MissingChecker missingChecker,
+                                    Kafka.KafkaCreator kafkaCreator)
     {
         this.config = config;
         this.logger = logger;
         this.scopeFactory = scopeFactory;
         this.redis = redis;
         this.missingChecker = missingChecker;
+        this.kafkaCreator = kafkaCreator;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -47,7 +50,7 @@ public class HypixelBackgroundService : BackgroundService
             BootstrapServers = SimplerConfig.Config.Instance["KAFKA_HOST"],
             LingerMs = 100,
         };
-        AuctionProducer = new ProducerBuilder<string, SaveAuction>(producerConfig).SetValueSerializer(SerializerFactory.GetSerializer<SaveAuction>()).Build();
+        AuctionProducer = kafkaCreator.BuildProducer<string, SaveAuction>();
 
 
         var lastUseSet = new DateTime();
