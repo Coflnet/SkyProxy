@@ -34,12 +34,13 @@ namespace Coflnet.Sky.Proxy.Controllers
         /// Request ah update for a player
         /// </summary>
         /// <param name="playerId"></param>
+        /// <param name="hintSource"></param>
         /// <returns></returns>
         [HttpPost]
         [Route("ah/{playerId}")]
-        public async Task RequestAhUpdate(string playerId)
+        public async Task RequestAhUpdate(string playerId, string hintSource = "#cofl")
         {
-            await service.UpdateAh(playerId);
+            await service.UpdateAh(playerId, hintSource);
         }
 
         [HttpPost]

@@ -62,6 +62,9 @@ namespace Coflnet.Sky.Proxy.Controllers
         public async Task<IEnumerable<SaveAuction>> ProxyPlayerAh(string playerUuid, [FromServices] MissingChecker missingChecker, [FromServices] HypixelBackgroundService backgroundService, int maxAgeSeconds = 0, string hintOwner = "xReborn")
         {
             var key = await keyManager.GetKey("hypixel", 1);
+            using var lease = await backgroundService.GetLeaseFor(playerUuid);
+            if(!lease.IsAcquired)
+                return new List<SaveAuction>();
             var auctions = await missingChecker.GetAuctionOfPlayer(playerUuid, key);
             var minEnd = System.DateTime.UtcNow - System.TimeSpan.FromSeconds(maxAgeSeconds);
             if (maxAgeSeconds == 0)
@@ -69,6 +72,7 @@ namespace Coflnet.Sky.Proxy.Controllers
             playerUuidAhRequests.Inc();
 
             missingChecker.ProduceAuctions(backgroundService.AuctionProducer, new("pre-api", hintOwner), auctions);
+            await Task.Delay(5000);
 
             return auctions.Where(a => a.End > minEnd);
         }

@@ -12,6 +12,10 @@ using Microsoft.Extensions.DependencyInjection;
 using StackExchange.Redis;
 using Microsoft.EntityFrameworkCore;
 using RestSharp;
+using RedisRateLimiting;
+using Newtonsoft.Json;
+using System.Collections.Concurrent;
+using System.Threading.RateLimiting;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -28,6 +32,7 @@ public class HypixelBackgroundService : BackgroundService
     /// Auction producer for kafka
     /// </summary>
     public IProducer<string, SaveAuction> AuctionProducer;
+    private ConcurrentDictionary<string, RedisConcurrencyRateLimiter<string>> rateLimiters = new();
     public HypixelBackgroundService(IConfiguration config,
                                     ILogger<HypixelBackgroundService> logger,
                                     IServiceScopeFactory scopeFactory,
@@ -41,6 +46,12 @@ public class HypixelBackgroundService : BackgroundService
         this.redis = redis;
         this.missingChecker = missingChecker;
         this.kafkaCreator = kafkaCreator;
+    }
+
+    public class Hint
+    {
+        public string Uuid { get; set; }
+        public string hintSource { get; set; }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -91,6 +102,8 @@ public class HypixelBackgroundService : BackgroundService
             }
         }, stoppingToken);
 
+        _ = ExecutePull(lastUseSet, db, key, stoppingToken);
+        _ = ExecutePull(lastUseSet, db, key, stoppingToken);
         await ExecutePull(lastUseSet, db, key, stoppingToken);
     }
 
@@ -115,10 +128,18 @@ public class HypixelBackgroundService : BackgroundService
                 continue;
             }
             pollNoContentTimes = 0;
-            foreach (var item in elements)
+            await Parallel.ForEachAsync(elements, async (item, cancel) =>
             {
-                var playerId = item["uuid"];
-                Console.WriteLine($"got PlayerId: {playerId}");
+                var hint = JsonConvert.DeserializeObject<Hint>(item["uuid"].ToString());
+                var playerId = hint.Uuid;
+                using var lease = await GetLeaseFor(playerId);
+                if (!lease.IsAcquired)
+                {
+                    Console.WriteLine("rate limit reached, skip " + playerId);
+                    return;
+                }
+                var start = DateTime.Now;
+
                 try
                 {
                     await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
@@ -133,9 +154,24 @@ public class HypixelBackgroundService : BackgroundService
                     await Task.Delay(1000); // back off in favor of another instance
                 }
                 await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
-            }
+
+                await Task.Delay(TimeSpan.FromSeconds(9) - (DateTime.Now - start));
+            });
             await UsedKey(key, lastUseSet, elements.Count());
         }
+    }
+
+    public async Task<RateLimitLease> GetLeaseFor(string playerId)
+    {
+        var rateLimiter = rateLimiters.GetOrAdd(playerId, (m) => new RedisConcurrencyRateLimiter<string>(m, new()
+        {
+            QueueLimit = 1,
+            ConnectionMultiplexerFactory = () => redis,
+            PermitLimit = 1,
+            TryDequeuePeriod = TimeSpan.FromSeconds(1.5)
+        }));
+        var lease = await rateLimiter.AcquireAsync();
+        return lease;
     }
 
     private async Task<string> GetValidKey(string key)

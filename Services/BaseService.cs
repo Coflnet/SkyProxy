@@ -32,10 +32,10 @@ namespace Coflnet.Sky.Proxy.Services
             this.redis = redis;
         }
 
-        public async Task UpdateAh(string playerId)
+        public async Task UpdateAh(string playerId, string hintSource)
         {
             var db = redis.GetDatabase();
-            var mId = db.StreamAdd("ah-update", "uuid", playerId);
+            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new { uuid = playerId, hintSource = hintSource }));
         }
 
         public static string GetUuidFromPlayerName(string playerName)
