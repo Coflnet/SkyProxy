@@ -43,7 +43,7 @@ public class BaseBackgroundService : BackgroundService
         {
             await UpdateBatch(batch.ToList());
             consumeCount.Inc(batch.Count());
-        }, stoppingToken, "SkyProxy", 10);
+        }, stoppingToken, "sky-proxy", 10);
 
         await toUpdateCons;
     }
