@@ -21,7 +21,8 @@ namespace Coflnet.Sky.Proxy.Services;
 
 public class HypixelBackgroundService : BackgroundService
 {
-    private Prometheus.Counter consumeCount = Prometheus.Metrics.CreateCounter("sky_proxy_user_ah_update", "How many messages were consumed");
+    private Prometheus.Counter consumeCount = Prometheus.Metrics.CreateCounter("sky_proxy_ah_update_request", "How many messages were consumed");
+    private Prometheus.Counter successCount = Prometheus.Metrics.CreateCounter("sky_proxy_ah_update_success", "How many time successful update happened");
     private IConfiguration config;
     private ILogger<HypixelBackgroundService> logger;
     private IServiceScopeFactory scopeFactory;
@@ -123,7 +124,7 @@ public class HypixelBackgroundService : BackgroundService
             StreamEntry[] elements;
             try
             {
-                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 3);
+                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 5);
             }
             catch (RedisTimeoutException)
             {
@@ -139,19 +140,20 @@ public class HypixelBackgroundService : BackgroundService
             await Parallel.ForEachAsync(elements, async (item, cancel) =>
             {
                 var hint = JsonConvert.DeserializeObject<Hint>(item["uuid"].ToString());
+                consumeCount.Inc();
                 var playerId = hint.Uuid;
+                var start = DateTime.Now;
                 using var lease = await GetLeaseFor(playerId);
                 if (!lease.IsAcquired)
                 {
                     Console.WriteLine("rate limit reached, skip " + playerId);
                     return;
                 }
-                var start = DateTime.Now;
 
                 try
                 {
                     await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
-                    consumeCount.Inc();
+                    successCount.Inc();
                 }
                 catch (Exception e)
                 {
@@ -159,7 +161,7 @@ public class HypixelBackgroundService : BackgroundService
                     int attempt = ((int)item["try"]);
                     if (attempt < 3)
                         await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", playerId), new NameValueEntry("try", attempt + 1) });
-                    await Task.Delay(1000); // back off in favor of another instance
+                    await Task.Delay(1000 * (int)Math.Pow(3, attempt)); // back off in favor of another instance
                 }
                 await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
 
