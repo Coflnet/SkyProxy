@@ -137,6 +137,7 @@ public class HypixelBackgroundService : BackgroundService
                 continue;
             }
             pollNoContentTimes = 0;
+            var hadError = false;
             await Parallel.ForEachAsync(elements, async (item, cancel) =>
             {
                 var hint = JsonConvert.DeserializeObject<Hint>(item["uuid"].ToString());
@@ -161,13 +162,16 @@ public class HypixelBackgroundService : BackgroundService
                     int attempt = ((int)item["try"]);
                     if (attempt < 3)
                         await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", playerId), new NameValueEntry("try", attempt + 1) });
-                    await Task.Delay(1000 * (int)Math.Pow(3, attempt)); // back off in favor of another instance
+                    hadError = true;
                 }
                 await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
-
-                await Task.Delay(TimeSpan.FromSeconds(9) - (DateTime.Now - start));
+                var waitTime = TimeSpan.FromSeconds(9) - (DateTime.Now - start);
+                if (waitTime > TimeSpan.Zero)
+                    await Task.Delay(waitTime);
             });
             await UsedKey(key, lastUseSet, elements.Count());
+            if (hadError)
+                await Task.Delay(TimeSpan.FromSeconds(5)); // back off in favor of another instance
         }
     }
 
