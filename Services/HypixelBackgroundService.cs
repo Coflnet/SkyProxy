@@ -102,9 +102,17 @@ public class HypixelBackgroundService : BackgroundService
             }
         }, stoppingToken);
 
-        _ = ExecutePull(lastUseSet, db, key, stoppingToken);
-        _ = ExecutePull(lastUseSet, db, key, stoppingToken);
-        await ExecutePull(lastUseSet, db, key, stoppingToken);
+        while (!stoppingToken.IsCancellationRequested)
+        {
+            try
+            {
+                await ExecutePull(lastUseSet, db, key, stoppingToken);
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "error executing pull");
+            }
+        }
     }
 
     private async Task ExecutePull(DateTime lastUseSet, IDatabase db, string key, CancellationToken stoppingToken)
