@@ -124,7 +124,7 @@ public class HypixelBackgroundService : BackgroundService
             StreamEntry[] elements;
             try
             {
-                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 5);
+                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 3);
             }
             catch (RedisTimeoutException)
             {
@@ -138,7 +138,7 @@ public class HypixelBackgroundService : BackgroundService
             }
             pollNoContentTimes = 0;
             var hadError = false;
-            await Parallel.ForEachAsync(elements, async (item, cancel) =>
+            var batch = Parallel.ForEachAsync(elements, async (item, cancel) =>
             {
                 var hint = JsonConvert.DeserializeObject<Hint>(item["uuid"].ToString());
                 consumeCount.Inc();
@@ -170,8 +170,20 @@ public class HypixelBackgroundService : BackgroundService
                     await Task.Delay(waitTime);
             });
             await UsedKey(key, lastUseSet, elements.Count());
+            await Task.Delay(1000);
             if (hadError)
                 await Task.Delay(TimeSpan.FromSeconds(5)); // back off in favor of another instance
+            Task.Run(async () =>
+            {
+                try
+                {
+                    await batch;
+                }
+                catch (System.Exception e)
+                {
+                    logger.LogError(e, "error executing batch");
+                }
+            }).Wait();
         }
     }
 
