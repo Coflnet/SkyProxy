@@ -165,7 +165,7 @@ public class HypixelBackgroundService : BackgroundService
                     hadError = true;
                 }
                 await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
-                var waitTime = TimeSpan.FromSeconds(9) - (DateTime.Now - start);
+                var waitTime = TimeSpan.FromSeconds(12) - (DateTime.Now - start);
                 if (waitTime > TimeSpan.Zero)
                     await Task.Delay(waitTime);
             });
