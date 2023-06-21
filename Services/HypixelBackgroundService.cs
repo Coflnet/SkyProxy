@@ -140,7 +140,13 @@ public class HypixelBackgroundService : BackgroundService
             var hadError = false;
             var batch = Parallel.ForEachAsync(elements, async (item, cancel) =>
             {
-                var hint = JsonConvert.DeserializeObject<Hint>(item["uuid"].ToString());
+                var json = item["uuid"].ToString();
+                if(!json.StartsWith("{"))
+                {
+                    logger.LogError("invalid json: " + json);
+                    return;
+                }
+                var hint = JsonConvert.DeserializeObject<Hint>(json);
                 consumeCount.Inc();
                 var playerId = hint.Uuid;
                 var start = DateTime.Now;
@@ -161,7 +167,7 @@ public class HypixelBackgroundService : BackgroundService
                     logger.LogError(e, "error updating auctions");
                     int attempt = ((int)item["try"]);
                     if (attempt < 3)
-                        await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", playerId), new NameValueEntry("try", attempt + 1) });
+                        await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", json), new NameValueEntry("try", attempt + 1) });
                     hadError = true;
                 }
                 await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
