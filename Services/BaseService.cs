@@ -35,7 +35,7 @@ namespace Coflnet.Sky.Proxy.Services
         public async Task UpdateAh(string playerId, string hintSource)
         {
             var db = redis.GetDatabase();
-            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new { uuid = playerId, hintSource = hintSource }));
+            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new { uuid = playerId.Trim('"'), hintSource = hintSource }));
         }
 
         public static string GetUuidFromPlayerName(string playerName)
