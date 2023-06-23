@@ -159,6 +159,11 @@ public class HypixelBackgroundService : BackgroundService
 
                 try
                 {
+                    if(string.IsNullOrEmpty(playerId) || playerId.Length != 32)
+                    {
+                        logger.LogError($"invalid player for {json}");
+                        return;
+                    }
                     await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
                     successCount.Inc();
                 }
