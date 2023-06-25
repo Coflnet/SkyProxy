@@ -125,7 +125,7 @@ public class HypixelBackgroundService : BackgroundService
             StreamEntry[] elements;
             try
             {
-                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 3);
+                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 5);
             }
             catch (RedisTimeoutException)
             {
@@ -213,7 +213,7 @@ public class HypixelBackgroundService : BackgroundService
             PermitLimit = 1,
             TryDequeuePeriod = TimeSpan.FromSeconds(1.5)
         }));
-        var lease = await rateLimiter.AcquireAsync();
+        var lease = await rateLimiter.AcquireAsync().ConfigureAwait(false);
         return lease;
     }
 
