@@ -10,6 +10,7 @@ using Microsoft.Extensions.Configuration;
 using Coflnet.Sky.Core;
 using StackExchange.Redis;
 using System.Collections.Generic;
+using static Coflnet.Sky.Proxy.Services.HypixelBackgroundService;
 
 namespace Coflnet.Sky.Proxy.Services
 {
@@ -35,7 +36,7 @@ namespace Coflnet.Sky.Proxy.Services
         public async Task UpdateAh(string playerId, string hintSource)
         {
             var db = redis.GetDatabase();
-            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new { uuid = playerId.Trim('"'), hintSource = hintSource }));
+            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new Hint(){ Uuid = playerId.Trim('"'), hintSource = hintSource }));
         }
 
         public static string GetUuidFromPlayerName(string playerName)

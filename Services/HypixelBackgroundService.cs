@@ -53,6 +53,7 @@ public class HypixelBackgroundService : BackgroundService
     {
         public string Uuid { get; set; }
         public string hintSource { get; set; }
+        public DateTime ProvidedAt { get; set; } = DateTime.UtcNow;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -148,6 +149,11 @@ public class HypixelBackgroundService : BackgroundService
                 }
                 var hint = JsonConvert.DeserializeObject<Hint>(json);
                 consumeCount.Inc();
+                if(hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(8))
+                {
+                    logger.LogInformation($"skipping hint because it is to old {hint.Uuid} from {hint.hintSource}");
+                    return;
+                }
                 var playerId = hint.Uuid;
                 var start = DateTime.Now;
                 using var lease = await GetLeaseFor(playerId);
