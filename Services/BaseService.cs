@@ -18,6 +18,7 @@ namespace Coflnet.Sky.Proxy.Services
     {
         private ProxyDbContext db;
         public int RequestsSinceStart { get; private set; }
+        private Prometheus.Counter hintsScheduled = Prometheus.Metrics.CreateCounter("sky_proxy_ah_update_shedules", "How many updates were sheduled");
         /// <summary>
         /// Is set to the last time the ip was rate limited by Mojang
         /// </summary>
@@ -36,7 +37,8 @@ namespace Coflnet.Sky.Proxy.Services
         public async Task UpdateAh(string playerId, string hintSource)
         {
             var db = redis.GetDatabase();
-            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new Hint(){ Uuid = playerId.Trim('"'), hintSource = hintSource }));
+            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new Hint() { Uuid = playerId.Trim('"'), hintSource = hintSource }));
+            hintsScheduled.Inc();
         }
 
         public static string GetUuidFromPlayerName(string playerName)
