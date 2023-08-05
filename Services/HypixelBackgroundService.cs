@@ -116,6 +116,7 @@ public class HypixelBackgroundService : BackgroundService
             }
         }
     }
+    private bool hadError = false;
 
     private async Task ExecutePull(DateTime lastUseSet, IDatabase db, string key, CancellationToken stoppingToken)
     {
@@ -138,58 +139,14 @@ public class HypixelBackgroundService : BackgroundService
                 continue;
             }
             pollNoContentTimes = 0;
-            var hadError = false;
-            var batch = Parallel.ForEachAsync(elements, async (item, cancel) =>
-            {
-                var json = item["uuid"].ToString();
-                if(!json.StartsWith("{"))
-                {
-                    logger.LogError("invalid json: " + json);
-                    return;
-                }
-                var hint = JsonConvert.DeserializeObject<Hint>(json);
-                consumeCount.Inc();
-                if(hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(8))
-                {
-                    logger.LogInformation($"skipping hint because it is to old {hint.Uuid} from {hint.hintSource}");
-                    return;
-                }
-                var playerId = hint.Uuid;
-                var start = DateTime.Now;
-                using var lease = await GetLeaseFor(playerId);
-                if (!lease.IsAcquired)
-                {
-                    Console.WriteLine("rate limit reached, skip " + playerId);
-                    return;
-                }
-
-                try
-                {
-                    if(string.IsNullOrEmpty(playerId) || playerId.Length != 32)
-                    {
-                        logger.LogError($"invalid player for {json}");
-                        return;
-                    }
-                    await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
-                    successCount.Inc();
-                }
-                catch (Exception e)
-                {
-                    logger.LogError(e, "error updating auctions");
-                    int attempt = ((int)item["try"]);
-                    if (attempt < 3)
-                        await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", json), new NameValueEntry("try", attempt + 1) });
-                    hadError = true;
-                }
-                await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
-                var waitTime = TimeSpan.FromSeconds(12) - (DateTime.Now - start);
-                if (waitTime > TimeSpan.Zero)
-                    await Task.Delay(waitTime);
-            });
+            Task batch = ExecuteBatch(db, key, elements);
             await UsedKey(key, lastUseSet, elements.Count());
-            await Task.Delay(1000);
+            await Task.Delay(500);
             if (hadError)
+            {
                 await Task.Delay(TimeSpan.FromSeconds(5)); // back off in favor of another instance
+                hadError = false;
+            }
             Task.Run(async () =>
             {
                 try
@@ -202,6 +159,57 @@ public class HypixelBackgroundService : BackgroundService
                 }
             }).Wait();
         }
+    }
+
+    private Task ExecuteBatch(IDatabase db, string key, StreamEntry[] elements)
+    {
+        return Parallel.ForEachAsync(elements, async (item, cancel) =>
+        {
+            var json = item["uuid"].ToString();
+            if (!json.StartsWith("{"))
+            {
+                logger.LogError("invalid json: " + json);
+                return;
+            }
+            var hint = JsonConvert.DeserializeObject<Hint>(json);
+            consumeCount.Inc();
+            if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(8))
+            {
+                logger.LogInformation($"skipping hint because it is to old {hint.Uuid} from {hint.hintSource}");
+                return;
+            }
+            var playerId = hint.Uuid;
+            var start = DateTime.Now;
+            using var lease = await GetLeaseFor(playerId);
+            if (!lease.IsAcquired)
+            {
+                Console.WriteLine("rate limit reached, skip " + playerId);
+                return;
+            }
+
+            try
+            {
+                if (string.IsNullOrEmpty(playerId) || playerId.Length != 32)
+                {
+                    logger.LogError($"invalid player for {json}");
+                    return;
+                }
+                await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
+                successCount.Inc();
+            }
+            catch (Exception e)
+            {
+                logger.LogError(e, "error updating auctions");
+                int attempt = ((int)item["try"]);
+                if (attempt < 3)
+                    await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", json), new NameValueEntry("try", attempt + 1) });
+                hadError = true;
+            }
+            await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
+            var waitTime = TimeSpan.FromSeconds(12) - (DateTime.Now - start);
+            if (waitTime > TimeSpan.Zero)
+                await Task.Delay(waitTime);
+        });
     }
 
     public async Task<RateLimitLease> GetLeaseFor(string playerId)
