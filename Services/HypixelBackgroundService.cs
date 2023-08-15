@@ -234,7 +234,8 @@ public class HypixelBackgroundService : BackgroundService
             {
                 key = await keyRetriever.GetKey("hypixel");
                 var client = new RestClient("https://api.hypixel.net/");
-                var request = new RestRequest($"key?key={key}", Method.Get);
+                var request = new RestRequest($"punishmentstats", Method.Get);
+                request.AddHeader("API-Key", key);
 
                 //Get the response and Deserialize
                 var response = client.Execute(request);
