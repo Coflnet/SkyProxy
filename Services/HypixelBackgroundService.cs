@@ -182,7 +182,12 @@ public class HypixelBackgroundService : BackgroundService
             }
             var hint = JsonConvert.DeserializeObject<Hint>(json);
             consumeCount.Inc();
-            if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(8))
+            if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(6) && hint.hintSource == "recheck")
+            {
+                logger.LogInformation($"skipping recheck because it is to old {hint.Uuid}");
+                return;
+            }
+            if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(9))
             {
                 logger.LogInformation($"skipping hint because it is to old {hint.Uuid} from {hint.hintSource}");
                 return;
