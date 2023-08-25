@@ -23,6 +23,7 @@ namespace Coflnet.Sky.Proxy.Services;
 public class HypixelBackgroundService : BackgroundService
 {
     private Prometheus.Counter consumeCount = Prometheus.Metrics.CreateCounter("sky_proxy_ah_update_request", "How many messages were consumed");
+    private Prometheus.Counter requestCount = Prometheus.Metrics.CreateCounter("sky_proxy_ah_update_start", "How many requests were started");
     private Prometheus.Counter successCount = Prometheus.Metrics.CreateCounter("sky_proxy_ah_update_success", "How many time successful update happened");
     private IConfiguration config;
     private ILogger<HypixelBackgroundService> logger;
@@ -202,6 +203,7 @@ public class HypixelBackgroundService : BackgroundService
                     logger.LogError($"invalid player for {json}");
                     return;
                 }
+                requestCount.Inc();
                 await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
                 successCount.Inc();
             }
