@@ -16,6 +16,7 @@ using RedisRateLimiting;
 using Newtonsoft.Json;
 using System.Collections.Concurrent;
 using System.Threading.RateLimiting;
+using System.Diagnostics;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -29,6 +30,7 @@ public class HypixelBackgroundService : BackgroundService
     private ConnectionMultiplexer redis;
     private MissingChecker missingChecker;
     private Kafka.KafkaCreator kafkaCreator;
+    private ActivitySource activitySource;
     /// <summary>
     /// Auction producer for kafka
     /// </summary>
@@ -39,7 +41,8 @@ public class HypixelBackgroundService : BackgroundService
                                     IServiceScopeFactory scopeFactory,
                                     ConnectionMultiplexer redis,
                                     MissingChecker missingChecker,
-                                    Kafka.KafkaCreator kafkaCreator)
+                                    Kafka.KafkaCreator kafkaCreator,
+                                    ActivitySource activitySource)
     {
         this.config = config;
         this.logger = logger;
@@ -47,6 +50,7 @@ public class HypixelBackgroundService : BackgroundService
         this.redis = redis;
         this.missingChecker = missingChecker;
         this.kafkaCreator = kafkaCreator;
+        this.activitySource = activitySource;
     }
 
     public class Hint
@@ -123,6 +127,7 @@ public class HypixelBackgroundService : BackgroundService
         var pollNoContentTimes = 0;
         while (!stoppingToken.IsCancellationRequested)
         {
+            using var activity = activitySource.StartActivity("ah-update-batch");
             StreamEntry[] elements;
             try
             {
@@ -141,7 +146,7 @@ public class HypixelBackgroundService : BackgroundService
             pollNoContentTimes = 0;
             // deduplicate 
             elements = elements.GroupBy(x => x["uuid"]).Select(x => x.First()).ToArray();
-            Task batch = ExecuteBatch(db, key, elements);
+            Task batch = ExecuteBatch(db, key, elements, activity);
             await UsedKey(key, lastUseSet, elements.Count());
             await Task.Delay(150);
             if (hadError)
@@ -163,10 +168,11 @@ public class HypixelBackgroundService : BackgroundService
         }
     }
 
-    private Task ExecuteBatch(IDatabase db, string key, StreamEntry[] elements)
+    private Task ExecuteBatch(IDatabase db, string key, StreamEntry[] elements, Activity activity)
     {
         return Parallel.ForEachAsync(elements, async (item, cancel) =>
         {
+            using var requestActivity = activitySource.StartActivity("ah-update-request")?.SetParentId(activity.Id);
             var json = item["uuid"].ToString();
             if (!json.StartsWith("{"))
             {
@@ -221,7 +227,7 @@ public class HypixelBackgroundService : BackgroundService
             QueueLimit = 1,
             ConnectionMultiplexerFactory = () => redis,
             PermitLimit = 1,
-            TryDequeuePeriod = TimeSpan.FromSeconds(1.5)
+            TryDequeuePeriod = TimeSpan.FromSeconds(1.0)
         }));
         var lease = await rateLimiter.AcquireAsync().ConfigureAwait(false);
         return lease;

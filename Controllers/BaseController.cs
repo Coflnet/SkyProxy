@@ -47,7 +47,7 @@ namespace Coflnet.Sky.Proxy.Controllers
         [Route("key")]
         public async Task AddKey([FromBody] KeyCreate model)
         {
-            await service.AddKey(model.Key, model.Party, model.Owner);
+            await service.AddKey(model.Key, model.Party, model.Owner, model.ServerCount);
         }
 
         [HttpGet]

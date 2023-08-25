@@ -61,9 +61,10 @@ namespace Coflnet.Sky.Proxy.Services
             return responseDeserialized.id;
         }
 
-        internal async Task AddKey(string key, string party, string owner)
+        internal async Task AddKey(string key, string party, string owner, int serverCount)
         {
-            if (await db.ApiKeys.Where(k => k.Key == key && k.Party == party).AnyAsync())
+            var existing = await db.ApiKeys.Where(k => k.Key == key && k.Party == party).CountAsync();
+            if (existing >= serverCount)
                 return; // already exists
             db.ApiKeys.Add(new ApiKey { Key = key, Party = party, Owner = owner });
             await db.SaveChangesAsync();
