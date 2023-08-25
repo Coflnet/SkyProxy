@@ -143,7 +143,7 @@ public class HypixelBackgroundService : BackgroundService
             elements = elements.GroupBy(x => x["uuid"]).Select(x => x.First()).ToArray();
             Task batch = ExecuteBatch(db, key, elements);
             await UsedKey(key, lastUseSet, elements.Count());
-            await Task.Delay(400);
+            await Task.Delay(150);
             if (hadError)
             {
                 await Task.Delay(TimeSpan.FromSeconds(5)); // back off in favor of another instance
