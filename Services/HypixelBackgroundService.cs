@@ -209,7 +209,7 @@ public class HypixelBackgroundService : BackgroundService
                     return;
                 }
                 requestCount.Inc();
-                await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", "#cofl"));
+                await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", hint.hintSource));
                 successCount.Inc();
             }
             catch (Exception e)
