@@ -63,13 +63,7 @@ public class HypixelBackgroundService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        ProducerConfig producerConfig = new ProducerConfig
-        {
-            BootstrapServers = SimplerConfig.Config.Instance["KAFKA_HOST"],
-            LingerMs = 100,
-        };
         AuctionProducer = kafkaCreator.BuildProducer<string, SaveAuction>();
-
 
         var lastUseSet = new DateTime();
         var db = redis.GetDatabase();

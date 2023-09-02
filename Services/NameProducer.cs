@@ -7,6 +7,7 @@ using System;
 using System.Collections.Generic;
 using Confluent.Kafka.Admin;
 using Coflnet.Sky.Core;
+using Coflnet.Kafka;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -21,41 +22,23 @@ public class NameProducer : IDisposable, INameProducer
     private IConfiguration config;
     private ILogger<NameProducer> logger;
     IProducer<Ignore, PlayerNameUpdate> producer;
-    public NameProducer(IConfiguration config, ILogger<NameProducer> logger)
+    public NameProducer(IConfiguration config, ILogger<NameProducer> logger, KafkaCreator kafkaCreator)
     {
         this.config = config;
         this.logger = logger;
-        var producerConfig = new ProducerConfig
-        {
-            BootstrapServers = config["KAFKA_HOST"],
-            ClientId = "SkyProxy"
-        };
-        producer = new ProducerBuilder<Ignore, PlayerNameUpdate>(producerConfig)
-                    .SetValueSerializer(SerializerFactory.GetSerializer<PlayerNameUpdate>())
-                    .SetKeySerializer(SerializerFactory.GetSerializer<Ignore>()).Build();
+        producer = kafkaCreator.BuildProducer<Ignore, PlayerNameUpdate>();
 
         Task.Run(async () =>
         {
-            await UpdatePartitionCount(config, logger);
+            await UpdatePartitionCount(config, logger, kafkaCreator);
         });
     }
 
-    private static async Task UpdatePartitionCount(IConfiguration config, ILogger<NameProducer> logger)
+    private static async Task UpdatePartitionCount(IConfiguration config, ILogger<NameProducer> logger, KafkaCreator kafkaCreator)
     {
         try
         {
-            using var adminClient = new AdminClientBuilder(new AdminClientConfig()
-            {
-                BootstrapServers = config["KAFKA_HOST"]
-            }).Build();
-            await adminClient.CreatePartitionsAsync(new List<PartitionsSpecification>()
-                {
-                    new PartitionsSpecification()
-                    {
-                        Topic = config["TOPICS:NAME_UPDATE_REQUEST"],
-                        IncreaseTo = 30
-                    }
-                });
+            await kafkaCreator.CreateTopicIfNotExist(config["TOPICS:NAME_UPDATE_REQUEST"], 30);
         }
         catch (System.Exception e)
         {
