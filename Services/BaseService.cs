@@ -37,8 +37,18 @@ namespace Coflnet.Sky.Proxy.Services
         public async Task UpdateAh(string playerId, string hintSource)
         {
             var db = redis.GetDatabase();
-            var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new Hint() { Uuid = playerId.Trim('"'), hintSource = hintSource }));
-            hintsScheduled.Inc();
+            for (int i = 0; i < 5; i++)
+                try
+                {
+                    var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new Hint() { Uuid = playerId.Trim('"'), hintSource = hintSource }));
+                    hintsScheduled.Inc();
+                    return;
+                }
+                catch (RedisTimeoutException)
+                {
+                    await Task.Delay(100 * i);
+                    continue;
+                }
         }
 
         public static string GetUuidFromPlayerName(string playerName)
