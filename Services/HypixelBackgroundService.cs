@@ -215,6 +215,11 @@ public class HypixelBackgroundService : BackgroundService
             {
                 hadError = true;
                 logger.LogError(e, "error updating auctions");
+                if(e.Message.Contains("Invalid API key"))
+                {
+                    logger.LogInformation($"key `{key.Truncate(10)}` is invalid");
+                    await keyRetriever.InvalidateKey("hypixel", key);
+                }
                 int attempt = ((int)item["try"]);
                 requestActivity?.SetTag("error", "true");
                 if (attempt < 3 && !cancel.IsCancellationRequested)
