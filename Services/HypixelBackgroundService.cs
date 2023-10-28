@@ -143,7 +143,7 @@ public class HypixelBackgroundService : BackgroundService
             elements = elements.GroupBy(x => x["uuid"]).Select(x => x.First()).ToArray();
             Task batch = ExecuteBatch(db, key, elements, activity, stoppingToken);
             await UsedKey(key, lastUseSet, elements.Count());
-            await Task.Delay(200);
+            await Task.Delay(500);
             if (hadError)
             {
                 logger.LogInformation("had error, waiting 10 seconds");
@@ -181,11 +181,13 @@ public class HypixelBackgroundService : BackgroundService
             if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(6) && hint.hintSource == "recheck")
             {
                 logger.LogInformation($"skipping recheck because it is to old {hint.Uuid}");
+                requestActivity?.SetTag("skiped", "true");
                 return;
             }
             if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(9))
             {
                 logger.LogInformation($"skipping hint because it is to old {hint.Uuid} from {hint.hintSource}");
+                requestActivity?.SetTag("skiped", "true");
                 return;
             }
             var playerId = hint.Uuid;
@@ -194,6 +196,7 @@ public class HypixelBackgroundService : BackgroundService
             if (!lease.IsAcquired)
             {
                 Console.WriteLine("rate limit reached, skip " + playerId);
+                requestActivity?.SetTag("skiped", "rate limit");
                 return;
             }
 
@@ -210,16 +213,20 @@ public class HypixelBackgroundService : BackgroundService
             }
             catch (Exception e)
             {
+                hadError = true;
                 logger.LogError(e, "error updating auctions");
                 int attempt = ((int)item["try"]);
-                if (attempt < 3 && !cancellationToken.IsCancellationRequested)
+                requestActivity?.SetTag("error", "true");
+                if (attempt < 3 && !cancel.IsCancellationRequested)
                     await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", json), new NameValueEntry("try", attempt + 1) });
-                hadError = true;
             }
             await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
             var waitTime = TimeSpan.FromSeconds(18) - (DateTime.Now - start);
-            if (waitTime > TimeSpan.Zero && !cancellationToken.IsCancellationRequested)
+            if (waitTime > TimeSpan.Zero && !cancel.IsCancellationRequested)
+            {
                 await Task.Delay(waitTime);
+                requestActivity?.SetTag("waited", waitTime.ToString());
+            }
         });
     }
 
