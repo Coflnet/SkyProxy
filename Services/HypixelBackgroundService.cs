@@ -146,8 +146,8 @@ public class HypixelBackgroundService : BackgroundService
             await Task.Delay(200);
             if (hadError)
             {
-                await Task.Delay(TimeSpan.FromSeconds(10)); // back off in favor of another instance
                 logger.LogInformation("had error, waiting 10 seconds");
+                await Task.Delay(TimeSpan.FromSeconds(10)); // back off in favor of another instance
                 hadError = false;
             }
             _ = Task.Run(async () =>
