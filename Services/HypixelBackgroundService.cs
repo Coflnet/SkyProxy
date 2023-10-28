@@ -126,7 +126,7 @@ public class HypixelBackgroundService : BackgroundService
             StreamEntry[] elements;
             try
             {
-                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 7);
+                elements = await db.StreamReadGroupAsync("ah-update", "sky-proxy-ah-update", System.Net.Dns.GetHostName(), StreamPosition.NewMessages, 4);
             }
             catch (RedisTimeoutException)
             {
@@ -143,7 +143,7 @@ public class HypixelBackgroundService : BackgroundService
             elements = elements.GroupBy(x => x["uuid"]).Select(x => x.First()).ToArray();
             Task batch = ExecuteBatch(db, key, elements, activity, stoppingToken);
             await UsedKey(key, lastUseSet, elements.Count());
-            await Task.Delay(250);
+            await Task.Delay(200);
             if (hadError)
             {
                 await Task.Delay(TimeSpan.FromSeconds(10)); // back off in favor of another instance
