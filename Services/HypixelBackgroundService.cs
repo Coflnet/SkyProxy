@@ -215,9 +215,11 @@ public class HypixelBackgroundService : BackgroundService
             {
                 hadError = true;
                 logger.LogError(e, "error updating auctions");
-                if(e.Message.Contains("Invalid API key"))
+                if (e.Message.Contains("Invalid API key"))
                 {
                     logger.LogInformation($"key `{key.Truncate(10)}` is invalid");
+                    using var scope = scopeFactory.CreateScope();
+                    var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
                     await keyRetriever.InvalidateKey("hypixel", key);
                 }
                 int attempt = ((int)item["try"]);

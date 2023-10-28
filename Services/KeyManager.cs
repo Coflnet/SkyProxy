@@ -54,8 +54,8 @@ public class KeyManager
     /// <returns></returns>
     public async Task InvalidateKey(string provider, string key)
     {
-        var apiKey = await db.ApiKeys.Where(a => a.Party == provider && a.Key == key).FirstOrDefaultAsync();
-        if (apiKey != null)
+        var ApiKeys = await db.ApiKeys.Where(a => a.Party == provider && a.Key == key).ToListAsync();
+        foreach (var apiKey in ApiKeys)
         {
             apiKey.IsValid = false;
             await db.SaveChangesAsync();
