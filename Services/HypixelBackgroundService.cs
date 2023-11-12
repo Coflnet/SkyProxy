@@ -67,15 +67,6 @@ public class HypixelBackgroundService : BackgroundService
 
         var lastUseSet = new DateTime();
         var db = redis.GetDatabase();
-        try
-        {
-            await db.StreamCreateConsumerGroupAsync("ah-update", "sky-proxy-ah-update");
-        }
-        catch (System.Exception)
-        {
-            // ignore
-        }
-
 
         using (var scope = scopeFactory.CreateScope())
         using (var context = scope.ServiceProvider.GetRequiredService<Models.ProxyDbContext>())
@@ -111,6 +102,11 @@ public class HypixelBackgroundService : BackgroundService
             }
             catch (Exception e)
             {
+                if(e.Message.Contains("OGROUP No such key"))
+                {
+                    // group doesn't exist, create it
+                    await db.StreamCreateConsumerGroupAsync("ah-update", "sky-proxy-ah-update");
+                }
                 logger.LogError(e, "error executing pull");
             }
         }
