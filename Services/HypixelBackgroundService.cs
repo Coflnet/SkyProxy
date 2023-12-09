@@ -139,7 +139,8 @@ public class HypixelBackgroundService : BackgroundService
             elements = elements.GroupBy(x => x["uuid"]).Select(x => x.First()).ToArray();
             Task batch = ExecuteBatch(db, key, elements, activity, stoppingToken);
             await UsedKey(key, lastUseSet, elements.Count());
-            await Task.Delay(500);
+            // wait for batch or timeout after 500ms
+            await Task.WhenAny(batch, Task.Delay(500));
             if (hadError)
             {
                 logger.LogInformation("had error, waiting 10 seconds");
