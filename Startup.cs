@@ -14,7 +14,6 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.OpenApi.Models;
 using Prometheus;
 using StackExchange.Redis;
-using RedisRateLimiting;
 
 namespace Coflnet.Sky.Proxy
 {
@@ -61,7 +60,7 @@ namespace Coflnet.Sky.Proxy
             services.AddSingleton<INameProducer, NameProducer>();
             services.AddHostedService<BaseBackgroundService>();
             services.AddSingleton<HypixelBackgroundService>();
-            services.AddHostedService<HypixelBackgroundService>(sp => sp.GetService<HypixelBackgroundService>());
+            services.AddHostedService(sp => sp.GetService<HypixelBackgroundService>());
             services.AddScoped<KeyManager>();
             services.AddSingleton<IIpRetriever, IpRetriever>();
             services.AddSingleton<MissingChecker>();
