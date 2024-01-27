@@ -59,6 +59,7 @@ public class HypixelBackgroundService : BackgroundService
         public string Uuid { get; set; }
         public string hintSource { get; set; }
         public DateTime ProvidedAt { get; set; } = DateTime.UtcNow;
+        public int Try { get; set; } = 0;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -136,8 +137,27 @@ public class HypixelBackgroundService : BackgroundService
             }
             pollNoContentTimes = 0;
             // deduplicate 
-            elements = elements.GroupBy(x => x["uuid"]).Select(x => x.First()).ToArray();
-            Task batch = ExecuteBatch(db, key, elements, activity, stoppingToken);
+            var hints = elements.Select(e =>
+            {
+                var json = e["uuid"].ToString();
+                if (!json.StartsWith("{"))
+                {
+                    logger.LogError("invalid json: " + json);
+                    return null;
+                }
+                var hint = JsonConvert.DeserializeObject<Hint>(json);
+                return hint;
+            }).Where(h => h != null).GroupBy(x => x.Uuid).Select(x => x.OrderBy(y => y.ProvidedAt).First()).ToArray();
+
+            // acknowledge all messages gonna get resheduled if they fail
+            foreach (var item in elements)
+                await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
+            if (hints.Count(h => h.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(9)) > 2)
+            {
+                logger.LogInformation($"skipping {hints.Count(h => h.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(9))} old hints");
+                continue;
+            }
+            Task batch = ExecuteBatch(db, key, hints, activity, stoppingToken);
             await UsedKey(key, lastUseSet, elements.Count());
             // wait for batch or timeout after 500ms
             await Task.WhenAny(batch, Task.Delay(500));
@@ -161,22 +181,16 @@ public class HypixelBackgroundService : BackgroundService
         }
     }
 
-    private Task ExecuteBatch(IDatabase db, string key, StreamEntry[] elements, Activity activity, CancellationToken stoppingToken)
+    private Task ExecuteBatch(IDatabase db, string key, Hint[] elements, Activity activity, CancellationToken stoppingToken)
     {
         var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token).Token;
         var skipCount = 0;
         var cancelOnSkipToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
         return Task.WhenAny(Task.Delay(30000, cancelOnSkipToken.Token),
-         Parallel.ForEachAsync(elements, timeoutToken, async (item, cancel) =>
+         Parallel.ForEachAsync(elements, timeoutToken, async (hint, cancel) =>
         {
             using var requestActivity = activitySource.StartActivity("ah-update-request")?.SetParentId(activity.Id);
-            var json = item["uuid"].ToString();
-            if (!json.StartsWith("{"))
-            {
-                logger.LogError("invalid json: " + json);
-                return;
-            }
-            var hint = JsonConvert.DeserializeObject<Hint>(json);
+
             consumeCount.Inc();
             if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(6) && hint.hintSource == "recheck")
             {
@@ -208,7 +222,7 @@ public class HypixelBackgroundService : BackgroundService
             {
                 if (string.IsNullOrEmpty(playerId) || playerId.Length != 32)
                 {
-                    logger.LogError($"invalid player for {json}");
+                    logger.LogError($"invalid player for {playerId}");
                     return;
                 }
                 requestCount.Inc();
@@ -226,12 +240,11 @@ public class HypixelBackgroundService : BackgroundService
                     var keyRetriever = scope.ServiceProvider.GetRequiredService<KeyManager>();
                     await keyRetriever.InvalidateKey("hypixel", key);
                 }
-                int attempt = ((int)item["try"]);
+                int attempt = hint.Try++;
                 requestActivity?.SetTag("error", "true");
                 if (attempt < 3 && !cancel.IsCancellationRequested)
-                    await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", json), new NameValueEntry("try", attempt + 1) });
+                    await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", JsonConvert.SerializeObject(hint)) });
             }
-            await db.StreamAcknowledgeAsync("ah-update", "sky-proxy-ah-update", item.Id, CommandFlags.FireAndForget);
             var waitTime = TimeSpan.FromSeconds(18) - (DateTime.Now - start);
             if (waitTime > TimeSpan.Zero && !cancel.IsCancellationRequested)
             {
