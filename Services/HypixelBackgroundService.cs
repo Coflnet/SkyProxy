@@ -102,7 +102,7 @@ public class HypixelBackgroundService : BackgroundService
             }
             catch (Exception e)
             {
-                if(e.Message.Contains("OGROUP No such key"))
+                if (e.Message.Contains("OGROUP No such key"))
                 {
                     // group doesn't exist, create it
                     await db.StreamCreateConsumerGroupAsync("ah-update", "sky-proxy-ah-update");
@@ -163,8 +163,11 @@ public class HypixelBackgroundService : BackgroundService
 
     private Task ExecuteBatch(IDatabase db, string key, StreamEntry[] elements, Activity activity, CancellationToken stoppingToken)
     {
-        var cancellationToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token).Token;
-        return Parallel.ForEachAsync(elements, cancellationToken, async (item, cancel) =>
+        var timeoutToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken, new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token).Token;
+        var skipCount = 0;
+        var cancelOnSkipToken = CancellationTokenSource.CreateLinkedTokenSource(stoppingToken);
+        return Task.WhenAny(Task.Delay(30000, cancelOnSkipToken.Token),
+         Parallel.ForEachAsync(elements, timeoutToken, async (item, cancel) =>
         {
             using var requestActivity = activitySource.StartActivity("ah-update-request")?.SetParentId(activity.Id);
             var json = item["uuid"].ToString();
@@ -179,12 +182,16 @@ public class HypixelBackgroundService : BackgroundService
             {
                 logger.LogInformation($"skipping recheck because it is to old {hint.Uuid}");
                 requestActivity?.SetTag("skiped", "true");
+                skipCount++;
                 return;
             }
             if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(9))
             {
                 logger.LogInformation($"skipping hint because it is to old {hint.Uuid} from {hint.hintSource}");
                 requestActivity?.SetTag("skiped", "true");
+                skipCount++;
+                if (skipCount >= elements.Length - 1)
+                    cancelOnSkipToken.Cancel();
                 return;
             }
             var playerId = hint.Uuid;
@@ -231,7 +238,7 @@ public class HypixelBackgroundService : BackgroundService
                 await Task.Delay(waitTime);
                 requestActivity?.SetTag("waited", waitTime.ToString());
             }
-        });
+        }));
     }
 
     public async Task<RateLimitLease> GetLeaseFor(string playerId)
