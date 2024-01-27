@@ -42,6 +42,16 @@ namespace Coflnet.Sky.Proxy.Controllers
         {
             await service.UpdateAh(playerId, hintSource);
         }
+        [HttpPost]
+        [Route("ah/loadtest")]
+        public async Task LoadTest(int iterations)
+        {
+            for (int i = 0; i < iterations; i++)
+            {
+                var guidNoDash = Guid.NewGuid().ToString().Replace("-", "");
+                await service.UpdateAh(guidNoDash, "test");
+            }
+        }
 
         [HttpPost]
         [Route("key")]
