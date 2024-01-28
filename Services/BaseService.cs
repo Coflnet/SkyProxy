@@ -40,7 +40,9 @@ namespace Coflnet.Sky.Proxy.Services
             for (int i = 0; i < 5; i++)
                 try
                 {
-                    var mId = db.StreamAdd("ah-update", "uuid", JsonConvert.SerializeObject(new Hint() { Uuid = playerId.Trim('"'), hintSource = hintSource }));
+                    var mId = db.StreamAdd("ah-update", "uuid", 
+                        JsonConvert.SerializeObject(new Hint() { Uuid = playerId.Trim('"'), hintSource = hintSource }), 
+                        maxLength: 1000, useApproximateMaxLength: true);
                     hintsScheduled.Inc();
                     return;
                 }
