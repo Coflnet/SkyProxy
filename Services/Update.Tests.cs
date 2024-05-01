@@ -44,11 +44,11 @@ public class UpdateTests
         nameList.Add(new PlayerNameUpdate() { Uuid = "gronkhId", Name = "Gronkh" });
         nameList.Add(new PlayerNameUpdate() { Name = "technoblade" });
         await client.UpdateBatch(nameList);
-        Assert.AreEqual(2, result.Count);
+        Assert.That(result.Count, Is.EqualTo(2));
         // api is case insensitive
-        Assert.AreEqual("Technoblade", result[0].Item1);
-        Assert.AreEqual("technoId", result[0].Item2);
-        Assert.AreEqual("test", result[1].Item1);
-        Assert.AreEqual("test", result[1].Item2);
+        Assert.That(result[0].Item1, Is.EqualTo("Technoblade"));
+        Assert.That(result[0].Item2, Is.EqualTo("technoId"));
+        Assert.That(result[1].Item1, Is.EqualTo("test"));
+        Assert.That(result[1].Item2, Is.EqualTo("test"));
     }
 }
