@@ -1,15 +1,12 @@
 using System.Threading;
 using System.Threading.Tasks;
 using Coflnet.Sky.Proxy.Models;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Configuration;
 using System.Linq;
 using Microsoft.Extensions.Logging;
-using Coflnet.Sky.Proxy.Controllers;
 using System.Collections.Generic;
-using Confluent.Kafka.Admin;
 using System;
 
 namespace Coflnet.Sky.Proxy.Services;
