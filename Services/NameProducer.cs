@@ -46,12 +46,21 @@ public class NameProducer : IDisposable, INameProducer
         }
     }
 
+    /// <summary>
+    /// Disposes the producer
+    /// </summary>
     public void Dispose()
     {
         producer?.Dispose();
         producer = null;
     }
 
+    /// <summary>
+    /// Produces a new name update request
+    /// </summary>
+    /// <param name="name"></param>
+    /// <param name="uuid"></param>
+    /// <returns></returns>
     public async Task Produce(string name, string uuid)
     {
 
