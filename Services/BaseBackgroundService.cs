@@ -36,7 +36,7 @@ public class BaseBackgroundService : BackgroundService
     /// <returns></returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var toUpdateCons = Coflnet.Kafka.KafkaConsumer.ConsumeBatch<PlayerNameUpdate>(config, config["TOPICS:NAME_UPDATE_REQUEST"], async batch =>
+        var toUpdateCons = Kafka.KafkaConsumer.ConsumeBatch<PlayerNameUpdate>(config, config["TOPICS:NAME_UPDATE_REQUEST"], async batch =>
         {
             await UpdateBatch(batch.ToList());
             consumeCount.Inc(batch.Count());

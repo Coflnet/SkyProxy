@@ -58,7 +58,7 @@ namespace Coflnet.Sky.Proxy
             services.AddScoped<KeyManager>();
             services.AddSingleton<IIpRetriever, IpRetriever>();
             services.AddSingleton<MissingChecker>();
-            services.AddSingleton<Kafka.KafkaCreator>();
+            services.AddSingleton<Coflnet.Sky.Kafka.KafkaCreator>();
             services.AddSingleton<ConnectionMultiplexer>(sp =>
             {
                 return  ConnectionMultiplexer.Connect(Configuration["REDIS_HOST"]);

@@ -30,7 +30,7 @@ public class HypixelBackgroundService : BackgroundService
     private IServiceScopeFactory scopeFactory;
     private ConnectionMultiplexer redis;
     private MissingChecker missingChecker;
-    private Kafka.KafkaCreator kafkaCreator;
+    private Coflnet.Sky.Kafka.KafkaCreator kafkaCreator;
     private ActivitySource activitySource;
     /// <summary>
     /// Auction producer for kafka
@@ -42,7 +42,7 @@ public class HypixelBackgroundService : BackgroundService
                                     IServiceScopeFactory scopeFactory,
                                     ConnectionMultiplexer redis,
                                     MissingChecker missingChecker,
-                                    Kafka.KafkaCreator kafkaCreator,
+                                    Coflnet.Sky.Kafka.KafkaCreator kafkaCreator,
                                     ActivitySource activitySource)
     {
         this.config = config;

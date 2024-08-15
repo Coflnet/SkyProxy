@@ -22,7 +22,7 @@ public class NameProducer : IDisposable, INameProducer
     private IConfiguration config;
     private ILogger<NameProducer> logger;
     IProducer<Ignore, PlayerNameUpdate> producer;
-    public NameProducer(IConfiguration config, ILogger<NameProducer> logger, KafkaCreator kafkaCreator)
+    public NameProducer(IConfiguration config, ILogger<NameProducer> logger, Kafka.KafkaCreator kafkaCreator)
     {
         this.config = config;
         this.logger = logger;
@@ -34,7 +34,7 @@ public class NameProducer : IDisposable, INameProducer
         });
     }
 
-    private static async Task UpdatePartitionCount(IConfiguration config, ILogger<NameProducer> logger, KafkaCreator kafkaCreator)
+    private static async Task UpdatePartitionCount(IConfiguration config, ILogger<NameProducer> logger, Kafka.KafkaCreator kafkaCreator)
     {
         try
         {
