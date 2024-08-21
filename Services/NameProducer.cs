@@ -11,13 +11,14 @@ using Coflnet.Kafka;
 
 namespace Coflnet.Sky.Proxy.Services;
 
-public interface INameProducer
+
+public interface INameProducer : IDisposable
 {
     void Dispose();
     Task Produce(string name, string uuid);
 }
 
-public class NameProducer : IDisposable, INameProducer
+public class NameProducer : INameProducer
 {
     private IConfiguration config;
     private ILogger<NameProducer> logger;
