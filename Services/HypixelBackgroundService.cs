@@ -263,7 +263,8 @@ public class HypixelBackgroundService : BackgroundService
             PermitLimit = 1,
             TryDequeuePeriod = TimeSpan.FromSeconds(1.0)
         }));
-        var lease = await rateLimiter.AcquireAsync().ConfigureAwait(false);
+        var timeoutToken = new CancellationTokenSource(TimeSpan.FromSeconds(30)).Token;
+        var lease = await rateLimiter.AcquireAsync(1, timeoutToken).ConfigureAwait(false);
         return lease;
     }
 
