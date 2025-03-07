@@ -159,8 +159,8 @@ public class HypixelBackgroundService : BackgroundService
             }
             Task batch = ExecuteBatch(db, key, hints, activity, stoppingToken);
             await UsedKey(key, lastUseSet, elements.Count());
-            // wait for batch or timeout after 500ms
-            await Task.WhenAny(batch, Task.Delay(500));
+            // wait for batch or timeout after 400ms
+            await Task.WhenAny(batch, Task.Delay(400));
             if (hadError)
             {
                 logger.LogInformation("had error, waiting 10 seconds");
