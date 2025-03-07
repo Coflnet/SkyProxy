@@ -226,6 +226,7 @@ public class HypixelBackgroundService : BackgroundService
                     return;
                 }
                 requestCount.Inc();
+                Console.WriteLine($"checking {playerId} because of {hint.hintSource}");
                 await missingChecker.UpdatePlayerAuctions(playerId, AuctionProducer, key, new("pre-api", hint.hintSource));
                 successCount.Inc();
             }
