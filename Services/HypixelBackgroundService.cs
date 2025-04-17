@@ -192,7 +192,7 @@ public class HypixelBackgroundService : BackgroundService
             using var requestActivity = activitySource.StartActivity("ah-update-request")?.SetParentId(activity.Id);
 
             consumeCount.Inc();
-            if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(6) && hint.hintSource == "recheck")
+            if (hint.ProvidedAt < DateTime.UtcNow - TimeSpan.FromSeconds(6) && hint.hintSource.Contains("recheck"))
             {
                 logger.LogInformation($"skipping recheck because it is to old {hint.Uuid}");
                 requestActivity?.SetTag("skiped", "true");
