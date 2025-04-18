@@ -246,7 +246,7 @@ public class HypixelBackgroundService : BackgroundService
                 if (attempt < 3 && !cancel.IsCancellationRequested)
                     await db.StreamAddAsync("ah-update", new NameValueEntry[] { new NameValueEntry("uuid", JsonConvert.SerializeObject(hint)) });
             }
-            var waitTime = TimeSpan.FromSeconds(20) - (DateTime.Now - start);
+            var waitTime = TimeSpan.FromSeconds(40) - (DateTime.Now - start);
             if (waitTime > TimeSpan.Zero && !cancel.IsCancellationRequested)
             {
                 await Task.Delay(waitTime);
