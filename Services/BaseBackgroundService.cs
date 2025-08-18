@@ -8,6 +8,7 @@ using System.Linq;
 using Microsoft.Extensions.Logging;
 using System.Collections.Generic;
 using System;
+using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Proxy.Services;
 
@@ -41,6 +42,21 @@ public class BaseBackgroundService : BackgroundService
             await UpdateBatch(batch.ToList());
             consumeCount.Inc(batch.Count());
         }, stoppingToken, "sky-proxy", 10);
+        var recheckRequest = Kafka.KafkaConsumer.ConsumeBatch<SaveAuction>(config, config["TOPICS:AUCTION_CHECK"], async batch =>
+        {
+            var differentSellers = batch.Where(a => IsNotBaiting(a)).Select(x => x.AuctioneerId).Distinct().ToList();
+            using var scope = scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<BaseService>();
+            foreach (var item in differentSellers)
+            {
+                await db.UpdateAh(item, "missing auction");
+            }
+
+            static bool IsNotBaiting(SaveAuction a)
+            {
+                return a.Start < DateTime.UtcNow.AddMinutes(2);
+            }
+        }, stoppingToken, "sky-proxy", 50, Confluent.Kafka.AutoOffsetReset.Latest);
 
         await toUpdateCons;
     }
@@ -67,10 +83,5 @@ public class BaseBackgroundService : BackgroundService
                 await producer.Produce(user.Name, item.Uuid);
             }
         }
-    }
-
-    private BaseService GetService()
-    {
-        return scopeFactory.CreateScope().ServiceProvider.GetRequiredService<BaseService>();
     }
 }
