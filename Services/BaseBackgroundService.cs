@@ -12,24 +12,25 @@ using Coflnet.Sky.Core;
 
 namespace Coflnet.Sky.Proxy.Services;
 
-public class BaseBackgroundService : BackgroundService
+/// <summary>
+/// Background worker that consumes name-update and auction-check batches.
+/// </summary>
+/// <param name="scopeFactory">Factory used to create DI scopes for scoped services.</param>
+/// <param name="config">Application configuration.</param>
+/// <param name="minecraftApiClient">API client used to resolve player names and uuids.</param>
+/// <param name="producer">Producer used to publish name updates.</param>
+public class BaseBackgroundService(
+    IServiceScopeFactory scopeFactory,
+    IConfiguration config,
+    IMinecraftApiClient minecraftApiClient,
+    INameProducer producer) : BackgroundService
 {
-    private IServiceScopeFactory scopeFactory;
-    private IConfiguration config;
-    private ILogger<BaseBackgroundService> logger;
-    private IMinecraftApiClient minecraftApiClient;
-    private INameProducer producer;
+    private readonly IServiceScopeFactory scopeFactory = scopeFactory;
+    private readonly IConfiguration _config = config;
+    private readonly IMinecraftApiClient minecraftApiClient = minecraftApiClient;
+    private readonly INameProducer producer = producer;
     private Prometheus.Counter consumeCount = Prometheus.Metrics.CreateCounter("sky_base_consume", "How many messages were consumed");
 
-    public BaseBackgroundService(
-        IServiceScopeFactory scopeFactory, IConfiguration config, ILogger<BaseBackgroundService> logger, IMinecraftApiClient minecraftApiClient, INameProducer producer)
-    {
-        this.scopeFactory = scopeFactory;
-        this.config = config;
-        this.logger = logger;
-        this.minecraftApiClient = minecraftApiClient;
-        this.producer = producer;
-    }
     /// <summary>
     /// Called by asp.net on startup
     /// </summary>
@@ -37,12 +38,12 @@ public class BaseBackgroundService : BackgroundService
     /// <returns></returns>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        var toUpdateCons = Kafka.KafkaConsumer.ConsumeBatch<PlayerNameUpdate>(config, config["TOPICS:NAME_UPDATE_REQUEST"], async batch =>
+        var toUpdateCons = Kafka.KafkaConsumer.ConsumeBatch<PlayerNameUpdate>(_config, _config["TOPICS:NAME_UPDATE_REQUEST"], async batch =>
         {
             await UpdateBatch(batch.ToList());
             consumeCount.Inc(batch.Count());
         }, stoppingToken, "sky-proxy", 10);
-        var recheckRequest = Kafka.KafkaConsumer.ConsumeBatch<SaveAuction>(config, config["TOPICS:AUCTION_CHECK"], async batch =>
+        var recheckRequest = Kafka.KafkaConsumer.ConsumeBatch<SaveAuction>(_config, _config["TOPICS:AUCTION_CHECK"], async batch =>
         {
             var differentSellers = batch.Where(a => IsNotBaiting(a)).Select(x => x.AuctioneerId).Distinct().ToList();
             using var scope = scopeFactory.CreateScope();
@@ -67,7 +68,7 @@ public class BaseBackgroundService : BackgroundService
         {
             // Todo request more names to update from indexer
         }
-        var responseJson = await this.minecraftApiClient.LoadByNameBatch(nameList);
+        var responseJson = await minecraftApiClient.LoadByNameBatch(nameList);
         var lookup = responseJson.ToDictionary(x => x.Name.ToLower());
         var missing = nameList.Where(n => n.Name != null && !lookup.ContainsKey(n.Name.ToLower()));
         var updated = responseJson.Where(n => !nameList.Where(x => x.Uuid == n.Id).Any());
