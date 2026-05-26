@@ -8,6 +8,7 @@ using Coflnet.Sky.Updater;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -41,10 +42,23 @@ namespace Coflnet.Sky.Proxy
 
             // Replace 'YourDbContext' with the name of your own DbContext derived class.
             services.AddDbContext<ProxyDbContext>(
-                dbContextOptions => dbContextOptions
-                    .UseNpgsql(Configuration["DB_CONNECTION"])
-                    .EnableSensitiveDataLogging() // <-- These two calls are optional but help
-                    .EnableDetailedErrors()       // <-- with debugging (remove for production).
+                dbContextOptions =>
+                {
+                    var connectionString = Configuration["DB_CONNECTION"] ?? string.Empty;
+                    var isCockroach = connectionString.Contains("cockroach", StringComparison.OrdinalIgnoreCase)
+                        || connectionString.Contains("26257");
+
+                    dbContextOptions.UseNpgsql(connectionString);
+
+                    if (isCockroach)
+                    {
+                        dbContextOptions.ReplaceService<IHistoryRepository, CockroachHistoryRepository>();
+                    }
+
+                    dbContextOptions
+                        .EnableSensitiveDataLogging(Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") == Environments.Development)
+                        .EnableDetailedErrors();
+                }
             );
             services.AddHostedService<BaseBackgroundService>();
             services.AddJaeger(Configuration);

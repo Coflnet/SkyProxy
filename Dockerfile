@@ -7,7 +7,7 @@ WORKDIR /build/sky
 COPY SkyProxy.csproj SkyProxy.csproj
 RUN dotnet restore
 COPY . .
-RUN dotnet publish -c debug -o /app
+RUN dotnet publish -c Release -o /app
 
 FROM mcr.microsoft.com/dotnet/sdk:10.0
 WORKDIR /app

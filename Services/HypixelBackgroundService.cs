@@ -73,7 +73,7 @@ public class HypixelBackgroundService : BackgroundService
         using (var context = scope.ServiceProvider.GetRequiredService<Models.ProxyDbContext>())
         {
             // make sure all migrations are applied
-            await context.Database.MigrateAsync();
+            await context.Database.MigrateAsync(stoppingToken);
         }
         string key = null;
         key = await GetValidKey(key);
