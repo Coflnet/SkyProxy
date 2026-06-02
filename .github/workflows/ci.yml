@@ -1,9 +1,10 @@
 # ═══════════════════════════════════════════════════════════════════════
-# SkyProxy CI — calls the organization's reusable container-ci workflow.
+# SkyProxy CI — calls the org-wide reusable container-ci workflow.
 #
-# SECURITY: This file only REFERENCES the reusable workflow. It cannot
-# override the image name, skip the scan, or access registry credentials.
-# The reusable workflow is defined in Coflnet/.github (protected repo).
+# SECURITY: This file only REFERENCES the reusable workflow.
+# - Image name: derived from repo name (docker.io/muehlhansfl/skyproxy)
+# - Registry creds: stored in Coflnet/.github, not here
+# - Scan enforcement: in the reusable workflow, cannot be bypassed
 # ═══════════════════════════════════════════════════════════════════════
 
 name: CI
@@ -17,15 +18,10 @@ on:
 
 jobs:
   container-ci:
-    # Uses the org-wide reusable workflow.
-    # Image name is DERIVED from the repo name (ghcr.io/coflnet/skyproxy) —
-    # this workflow CANNOT change it.
     uses: Coflnet/.github/.github/workflows/container-ci.yml@main
     with:
       dockerfile: ./Dockerfile
       context: .
       platforms: linux/amd64
       severity_threshold: HIGH
-    secrets:
-      ghcr_username: ${{ secrets.GHCR_USERNAME }}
-      ghcr_token: ${{ secrets.GHCR_TOKEN }}
+      k8s_file: main/sky/chart/charts/sky-proxy/values.yaml
