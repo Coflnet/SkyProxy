@@ -1,0 +1,30 @@
+# ═══════════════════════════════════════════════════════════════════════
+# SkyProxy CI — calls the organization's reusable container-ci workflow.
+#
+# SECURITY: This file only REFERENCES the reusable workflow. It cannot
+# override the image name, skip the scan, or access registry credentials.
+# The reusable workflow is defined in Coflnet/.github (protected repo).
+# ═══════════════════════════════════════════════════════════════════════
+
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  container-ci:
+    # Uses the org-wide reusable workflow.
+    # Image name is DERIVED from the repo name (ghcr.io/coflnet/skyproxy) —
+    # this workflow CANNOT change it.
+    uses: Coflnet/.github/.github/workflows/container-ci.yml@main
+    with:
+      dockerfile: ./Dockerfile
+      context: .
+      platforms: linux/amd64
+      severity_threshold: HIGH
+    secrets:
+      ghcr_username: ${{ secrets.GHCR_USERNAME }}
+      ghcr_token: ${{ secrets.GHCR_TOKEN }}
