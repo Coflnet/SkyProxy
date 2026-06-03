@@ -23,5 +23,5 @@ jobs:
       dockerfile: ./Dockerfile
       context: .
       platforms: linux/amd64
-      severity_threshold: HIGH
+      repo_url: https://github.com/Coflnet/k8s
       k8s_file: main/sky/chart/charts/sky-proxy/values.yaml
