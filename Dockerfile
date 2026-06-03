@@ -7,7 +7,10 @@ WORKDIR /build/sky
 COPY SkyProxy.csproj SkyProxy.csproj
 RUN dotnet restore
 COPY . .
-RUN dotnet publish -c Release -o /app
+RUN dotnet publish -c Release -o /app \
+    -p:PublishTrimmed=true \
+    -p:TrimMode=partial \
+    -p:ReadyToRun=true
 
 FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled
 WORKDIR /app

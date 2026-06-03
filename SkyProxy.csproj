@@ -7,6 +7,30 @@
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
   </PropertyGroup>
 
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <PublishTrimmed>true</PublishTrimmed>
+    <TrimMode>partial</TrimMode>
+    <ReadyToRun>true</ReadyToRun>
+    <SuppressTrimAnalysisWarnings>false</SuppressTrimAnalysisWarnings>
+    <MvcEnhancedModelMetadataSupport>true</MvcEnhancedModelMetadataSupport>
+  </PropertyGroup>
+
+  <!-- Preserve assemblies that trimming would otherwise remove -->
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Coflnet.Core" />
+    <TrimmerRootAssembly Include="Microsoft.EntityFrameworkCore" />
+    <TrimmerRootAssembly Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <TrimmerRootAssembly Include="Newtonsoft.Json" />
+    <TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.Core" />
+    <TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc" />
+    <TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.Abstractions" />
+    <TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.ApiExplorer" />
+    <TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.DataAnnotations" />
+    <TrimmerRootAssembly Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" />
+    <TrimmerRootAssembly Include="RestSharp" />
+    <TrimmerRootAssembly Include="Hypixel.NET" />
+  </ItemGroup>
+
   <ItemGroup>
     <ProjectReference Include="../dev/hypixel.csproj" />
     <ProjectReference Include="../SkyUpdater/SkyUpdater.csproj" />
@@ -23,7 +47,7 @@
 
   <ItemGroup>
     <PackageReference Include="RedisRateLimiting" Version="1.2.1" />
-    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
+    <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.8">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
