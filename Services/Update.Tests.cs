@@ -1,8 +1,6 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Coflnet.Sky.Proxy.Models;
-using Confluent.Kafka;
-using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
 
@@ -38,7 +36,7 @@ public class UpdateTests
         {
             result.Add((a, invoke));
         });
-        var client = new BaseBackgroundService(null, null, NullLogger<BaseBackgroundService>.Instance, apiClient.Object, producer.Object);
+        var client = new BaseBackgroundService(null, null, apiClient.Object, producer.Object);
         var nameList = new List<PlayerNameUpdate>();
         nameList.Add(new PlayerNameUpdate() { Uuid = "test", Name = "testNameChanged" });
         nameList.Add(new PlayerNameUpdate() { Uuid = "gronkhId", Name = "Gronkh" });
