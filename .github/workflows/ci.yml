@@ -20,10 +20,6 @@ jobs:
   container-ci:
     uses: Coflnet/.github/.github/workflows/container-ci.yml@main
     with:
-      dockerfile: ./Dockerfile
-      context: .
-      platforms: linux/amd64
-      repo_url: https://github.com/Coflnet/k8s
       k8s_file: main/sky/chart/charts/sky-proxy/values.yaml
     secrets:
       ARGO_WEBHOOK_SECRET: ${{ secrets.ARGO_WEBHOOK_SECRET }}
