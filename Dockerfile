@@ -1,8 +1,12 @@
 FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build
-RUN git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev
-RUN git clone --depth=1 https://github.com/Coflnet/SkyUpdater.git
-RUN git clone --depth=1 https://github.com/Ekwav/Hypixel.NET.git
+
+# Increment to bust Docker cache when upstream repos change
+ARG CACHE_BUST=0
+RUN git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev && \
+    git clone --depth=1 https://github.com/Coflnet/SkyUpdater.git && \
+    git clone --depth=1 https://github.com/Ekwav/Hypixel.NET.git && \
+    : "cache bust: ${CACHE_BUST}"
 WORKDIR /build/sky
 COPY SkyProxy.csproj SkyProxy.csproj
 RUN dotnet restore
