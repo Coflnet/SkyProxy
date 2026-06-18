@@ -38,14 +38,14 @@ namespace Coflnet.Sky.Proxy.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("hypixel")]
-        public async Task<string> Proxy(string path)
+        public async Task<ActionResult> Proxy(string path)
         {
             var request = new RestRequest(path, Method.Get);
             var key = await keyManager.GetKey("hypixel");
             request.AddQueryParameter("key", key);
             var response = await restClient.ExecuteAsync(request);
             await keyManager.UsedKey("hypixel", key);
-            return response.Content.Replace(key, "<redacted key>");
+            return Content(response.Content.Replace(key, "<redacted key>"), "application/json");
         }
 
         /// <summary>
