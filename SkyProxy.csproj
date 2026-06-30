@@ -5,6 +5,9 @@
     <GenerateProgramFile>false</GenerateProgramFile>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
+    <!-- Trimming (Release) defaults this to false, which disables reflection-based
+         System.Text.Json and breaks Swashbuckle schema generation. Re-enable it. -->
+    <JsonSerializerIsReflectionEnabledByDefault>true</JsonSerializerIsReflectionEnabledByDefault>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)' == 'Release'">
