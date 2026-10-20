@@ -1,4 +1,5 @@
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Coflnet.Sky.Proxy.Services;
 using RestSharp;
@@ -38,6 +39,7 @@ namespace Coflnet.Sky.Proxy.Controllers
         /// <returns></returns>
         [HttpGet]
         [Route("hypixel")]
+        [ProducesResponseType(typeof(string), StatusCodes.Status200OK, "application/json")]
         public async Task<ActionResult> Proxy(string path)
         {
             var request = new RestRequest(path, Method.Get);
