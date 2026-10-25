@@ -75,6 +75,8 @@ namespace Coflnet.Sky.Proxy
             services.AddHostedService(sp => sp.GetService<HypixelBackgroundService>());
             services.AddScoped<KeyManager>();
             services.AddSingleton<IIpRetriever, IpRetriever>();
+            services.AddSingleton<Coflnet.Sky.Updater.CancelledAuctionDetector>(sp => new Coflnet.Sky.Updater.CancelledAuctionDetector(
+                new System.Net.Http.HttpClient(), Configuration, sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Coflnet.Sky.Updater.CancelledAuctionDetector>>()));
             services.AddSingleton<MissingChecker>();
             services.AddSingleton<Coflnet.Sky.Kafka.KafkaCreator>();
             services.AddSingleton<ConnectionMultiplexer>(sp =>

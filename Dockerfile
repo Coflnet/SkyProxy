@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
 WORKDIR /build
 
 # Increment to bust Docker cache when upstream repos change
-ARG CACHE_BUST=0
+ARG CACHE_BUST=1
 RUN git clone --depth=1 https://github.com/Coflnet/HypixelSkyblock.git dev && \
     git clone --depth=1 https://github.com/Coflnet/SkyUpdater.git && \
     git clone --depth=1 https://github.com/Ekwav/Hypixel.NET.git && \
