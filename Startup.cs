@@ -48,7 +48,7 @@ namespace Coflnet.Sky.Proxy
             services.AddDbContext<ProxyDbContext>(
                 dbContextOptions =>
                 {
-                    var connectionString = Configuration["DB_CONNECTION"] ?? string.Empty;
+                    var connectionString = DbConnectionString.Build(Configuration);
                     var isCockroach = connectionString.Contains("cockroach", StringComparison.OrdinalIgnoreCase)
                         || connectionString.Contains("26257");
 
