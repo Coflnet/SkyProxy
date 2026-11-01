@@ -44,11 +44,12 @@ namespace Coflnet.Sky.Proxy
                 c.IncludeXmlComments(xmlPath);
             });
 
+            // built once so invalid TLS settings fail at startup, not on the first request
+            var connectionString = DbConnectionString.Build(Configuration);
             // Replace 'YourDbContext' with the name of your own DbContext derived class.
             services.AddDbContext<ProxyDbContext>(
                 dbContextOptions =>
                 {
-                    var connectionString = DbConnectionString.Build(Configuration);
                     var isCockroach = connectionString.Contains("cockroach", StringComparison.OrdinalIgnoreCase)
                         || connectionString.Contains("26257");
 

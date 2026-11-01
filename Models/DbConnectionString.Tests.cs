@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
 using NUnit.Framework;
 
@@ -85,5 +86,69 @@ public class DbConnectionStringTests
         File.Delete(key);
         Assert.Throws<InvalidOperationException>(() => DbConnectionString.Build(Config(
             ("DB:TLS:CA_CERT_PATH", ca), ("DB:TLS:CERT_PATH", cert), ("DB:TLS:KEY_PATH", key))));
+    }
+
+    [Test]
+    public void TrustServerCertificateIsDisabledWhenStrictTlsIsConfigured()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["DB_CONNECTION"] = Base + ";Trust Server Certificate=true",
+            ["DB:TLS:CA_CERT_PATH"] = ca,
+        }).Build();
+        var b = new NpgsqlConnectionStringBuilder(DbConnectionString.Build(config));
+        Assert.That(b.TrustServerCertificate, Is.False);
+    }
+
+    [Test]
+    public void LegacyClientIdentityOptionsDoNotSurviveStrictTls()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["DB_CONNECTION"] = Base + ";SSL Certificate=/old/tls.crt;SSL Key=/old/tls.key;SSL Password=old",
+            ["DB:TLS:CA_CERT_PATH"] = ca,
+        }).Build();
+        var b = new NpgsqlConnectionStringBuilder(DbConnectionString.Build(config));
+        Assert.That(b.SslCertificate, Is.Null.Or.Empty);
+        Assert.That(b.SslKey, Is.Null.Or.Empty);
+        Assert.That(b.SslPassword, Is.Null.Or.Empty);
+    }
+
+    [TestCase(0, 300)]
+    [TestCase(-1, 300)]
+    [TestCase(40, 40)]
+    [TestCase(3600, 300)]
+    public void StrictTlsBoundsPhysicalConnectionLifetime(int configured, int expected)
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["DB_CONNECTION"] = Base + ";Connection Lifetime=" + configured,
+            ["DB:TLS:CA_CERT_PATH"] = ca,
+        }).Build();
+        var b = new NpgsqlConnectionStringBuilder(DbConnectionString.Build(config));
+        Assert.That(b.ConnectionLifetime, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void LifetimeIsLeftAloneWithoutTlsSettings()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["DB_CONNECTION"] = Base + ";Connection Lifetime=3600",
+        }).Build();
+        Assert.That(DbConnectionString.Build(config), Does.Contain("Connection Lifetime=3600"));
+    }
+
+    [Test]
+    public void InvalidTlsSettingsFailWhenServicesAreConfiguredNotOnFirstRequest()
+    {
+        var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
+        {
+            ["DB_CONNECTION"] = Base,
+            ["DB:TLS:CA_CERT_PATH"] = Path.Combine(dir, "missing.crt"),
+        }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        Assert.Throws<InvalidOperationException>(() => new Coflnet.Sky.Proxy.Startup(config).ConfigureServices(services));
     }
 }

@@ -27,18 +27,31 @@ public static class DbConnectionString
         if ((cert == null) != (key == null))
             throw new InvalidOperationException("DB:TLS:CERT_PATH and DB:TLS:KEY_PATH must be configured together");
         RequireFile("DB:TLS:CA_CERT_PATH", ca);
-        var builder = new NpgsqlConnectionStringBuilder(connectionString)
-        {
-            SslMode = SslMode.VerifyFull,
-            RootCertificate = ca,
-        };
         if (cert != null)
         {
             RequireFile("DB:TLS:CERT_PATH", cert);
             RequireFile("DB:TLS:KEY_PATH", key);
-            builder.SslCertificate = cert;
-            builder.SslKey = key;
         }
+        return StrictTls(connectionString, ca, cert, key);
+    }
+
+    /// <summary>Upper bound for the lifetime of a physical connection, so renewed client certificates are picked up.</summary>
+    internal const int MaxConnectionLifetimeSeconds = 300;
+
+    private static string StrictTls(string connectionString, string ca, string cert, string key)
+    {
+        var builder = new NpgsqlConnectionStringBuilder(connectionString)
+        {
+            SslMode = SslMode.VerifyFull,
+            RootCertificate = ca,
+            TrustServerCertificate = false,
+            // legacy client identity options must not survive: either the configured pair or none
+            SslCertificate = cert,
+            SslKey = key,
+            SslPassword = null,
+        };
+        var lifetime = builder.ConnectionLifetime;
+        builder.ConnectionLifetime = lifetime <= 0 ? MaxConnectionLifetimeSeconds : Math.Min(lifetime, MaxConnectionLifetimeSeconds);
         return builder.ConnectionString;
     }
 
