@@ -52,10 +52,21 @@ public class DatabaseReadinessTests
         using var services = Services(sql);
         using var cancellation = new CancellationTokenSource();
         var check = DatabaseReadiness.CheckAsync(services, cancellation.Token);
-        await sql.Started.Task.WaitAsync(TimeSpan.FromSeconds(1));
+        await sql.Started.Task.WaitAsync(TimeSpan.FromSeconds(10));
         cancellation.Cancel();
         Assert.CatchAsync<OperationCanceledException>(() => check);
         await sql.Cancelled.Task.WaitAsync(TimeSpan.FromSeconds(1));
+    }
+
+    [Test]
+    public async Task StallIgnoringCancellationIsStillBoundedByTheSafetyNet()
+    {
+        var sql = new SqlProbe { Stall = true, IgnoreCancellation = true };
+        using var services = Services(sql);
+        var elapsed = Stopwatch.StartNew();
+        Assert.CatchAsync<Exception>(() => DatabaseReadiness.CheckAsync(services));
+        Assert.That(elapsed.Elapsed, Is.GreaterThan(TimeSpan.FromSeconds(3)).And.LessThan(TimeSpan.FromSeconds(6)));
+        sql.Release.TrySetResult(true);
     }
 
     [Test]
@@ -109,6 +120,8 @@ public class DatabaseReadinessTests
 
     private sealed class SqlProbe : DbCommandInterceptor
     {
+        public bool IgnoreCancellation;
+        public TaskCompletionSource<bool> Release = new(TaskCreationOptions.RunContinuationsAsynchronously);
         public bool Stall, Fail, CancellationCanBeRequested;
         public int Calls;
         public TaskCompletionSource<bool> Started = new(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -121,7 +134,9 @@ public class DatabaseReadinessTests
             Started.TrySetResult(true);
             CancellationCanBeRequested = cancellationToken.CanBeCanceled;
             if (Fail) throw new InvalidOperationException("synthetic SQL failure with secret detail");
-            if (Stall)
+            if (Stall && IgnoreCancellation)
+                await Release.Task;
+            else if (Stall)
             {
                 try { await Task.Delay(Timeout.InfiniteTimeSpan, cancellationToken); }
                 finally { if (cancellationToken.IsCancellationRequested) Cancelled.TrySetResult(true); }

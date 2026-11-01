@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Npgsql;
@@ -89,15 +90,19 @@ public class DbConnectionStringTests
     }
 
     [Test]
-    public void TrustServerCertificateIsDisabledWhenStrictTlsIsConfigured()
+    public void ObsoleteTrustServerCertificateOptionIsClearedDefensively()
     {
         var config = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string>
         {
             ["DB_CONNECTION"] = Base + ";Trust Server Certificate=true",
             ["DB:TLS:CA_CERT_PATH"] = ca,
         }).Build();
+        // TrustServerCertificate is [Obsolete] and a no-op in Npgsql 10; cleared only so no stale option lingers.
+        // The security property comes from SslMode=VerifyFull (see CaOnlyForcesVerifyFull...).
+#pragma warning disable CS0618
         var b = new NpgsqlConnectionStringBuilder(DbConnectionString.Build(config));
         Assert.That(b.TrustServerCertificate, Is.False);
+#pragma warning restore CS0618
     }
 
     [Test]
@@ -150,5 +155,57 @@ public class DbConnectionStringTests
         var services = new ServiceCollection();
         services.AddLogging();
         Assert.Throws<InvalidOperationException>(() => new Coflnet.Sky.Proxy.Startup(config).ConfigureServices(services));
+    }
+
+    [TestCase(0, 10)]
+    [TestCase(15, 10)]
+    [TestCase(4, 4)]
+    public void StrictTlsBoundsConnectTimeout(int configured, int expected)
+    {
+        var config = Config(("DB_CONNECTION", Base + ";Timeout=" + configured), ("DB:TLS:CA_CERT_PATH", ca));
+        Assert.That(new NpgsqlConnectionStringBuilder(DbConnectionString.Build(config)).Timeout, Is.EqualTo(expected));
+    }
+
+    [Test]
+    public void ConnectTimeoutIsLeftAloneWithoutTlsSettings()
+    {
+        var config = Config(("DB_CONNECTION", Base + ";Timeout=15"));
+        Assert.That(DbConnectionString.Build(config), Does.Contain("Timeout=15"));
+    }
+
+    [Test]
+    public void MissingCertFileFailsClosedWhenKeyExists()
+    {
+        File.Delete(cert);
+        Assert.Throws<InvalidOperationException>(() => DbConnectionString.Build(Config(
+            ("DB:TLS:CA_CERT_PATH", ca), ("DB:TLS:CERT_PATH", cert), ("DB:TLS:KEY_PATH", key))));
+    }
+
+    [Test]
+    public void CockroachDetectionStillMatchesTheStrictTlsConnectionString()
+    {
+        var built = DbConnectionString.Build(Config(("DB:TLS:CA_CERT_PATH", ca)));
+        Assert.That(Startup.IsCockroach(built), Is.True);
+        Assert.That(Startup.IsCockroach("Host=postgres.internal;Port=5432"), Is.False);
+    }
+
+    [Test]
+    public void ReloadedConnectionStringReachesNewlyCreatedDbContexts()
+    {
+        var root = new ConfigurationBuilder().AddInMemoryCollection(new Dictionary<string, string> { ["DB_CONNECTION"] = Base }).Build();
+        var services = new ServiceCollection();
+        services.AddLogging();
+        new Startup(root).ConfigureServices(services);
+        using var provider = services.BuildServiceProvider();
+
+        string Current()
+        {
+            using var scope = provider.CreateScope();
+            return scope.ServiceProvider.GetRequiredService<Coflnet.Sky.Proxy.Models.ProxyDbContext>().Database.GetConnectionString();
+        }
+
+        Assert.That(Current(), Does.Contain("password=x"));
+        root["DB_CONNECTION"] = Base.Replace("password=x", "password=rotated");
+        Assert.That(Current(), Does.Contain("password=rotated"));
     }
 }

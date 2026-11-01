@@ -38,6 +38,9 @@ public static class DbConnectionString
     /// <summary>Upper bound for the lifetime of a physical connection, so renewed client certificates are picked up.</summary>
     internal const int MaxConnectionLifetimeSeconds = 300;
 
+    /// <summary>Upper bound for the connect timeout (same value as SkyChat) so abandoned attempts free their socket and pool slot quickly.</summary>
+    internal const int MaxConnectTimeoutSeconds = 10;
+
     private static string StrictTls(string connectionString, string ca, string cert, string key)
     {
         var builder = new NpgsqlConnectionStringBuilder(connectionString)
@@ -52,6 +55,7 @@ public static class DbConnectionString
         };
         var lifetime = builder.ConnectionLifetime;
         builder.ConnectionLifetime = lifetime <= 0 ? MaxConnectionLifetimeSeconds : Math.Min(lifetime, MaxConnectionLifetimeSeconds);
+        builder.Timeout = builder.Timeout <= 0 ? MaxConnectTimeoutSeconds : Math.Min(builder.Timeout, MaxConnectTimeoutSeconds);
         return builder.ConnectionString;
     }
 

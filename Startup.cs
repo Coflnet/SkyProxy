@@ -44,18 +44,18 @@ namespace Coflnet.Sky.Proxy
                 c.IncludeXmlComments(xmlPath);
             });
 
-            // built once so invalid TLS settings fail at startup, not on the first request
-            var connectionString = DbConnectionString.Build(Configuration);
+            // validate eagerly so invalid TLS settings fail at startup; the string is rebuilt per
+            // DbContext below so a reloaded DB_CONNECTION (OpenBao refresh) reaches new requests
+            DbConnectionString.Build(Configuration);
             // Replace 'YourDbContext' with the name of your own DbContext derived class.
             services.AddDbContext<ProxyDbContext>(
                 dbContextOptions =>
                 {
-                    var isCockroach = connectionString.Contains("cockroach", StringComparison.OrdinalIgnoreCase)
-                        || connectionString.Contains("26257");
+                    var connectionString = DbConnectionString.Build(Configuration);
 
                     dbContextOptions.UseNpgsql(connectionString);
 
-                    if (isCockroach)
+                    if (IsCockroach(connectionString))
                     {
                         dbContextOptions.ReplaceService<IHistoryRepository, CockroachHistoryRepository>();
                     }
@@ -88,6 +88,10 @@ namespace Coflnet.Sky.Proxy
             services.AddResponseCaching();
             services.AddResponseCompression();
         }
+
+        internal static bool IsCockroach(string connectionString)
+            => connectionString.Contains("cockroach", StringComparison.OrdinalIgnoreCase)
+                || connectionString.Contains("26257");
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
