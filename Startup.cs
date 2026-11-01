@@ -114,6 +114,7 @@ namespace Coflnet.Sky.Proxy
             {
                 endpoints.MapMetrics();
                 endpoints.MapControllers();
+                endpoints.MapGet("/health/ready", DatabaseReadiness.HandleAsync);
             });
         }
     }
