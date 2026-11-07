@@ -36,7 +36,7 @@ public class UpdateTests
         {
             result.Add((a, invoke));
         });
-        var client = new BaseBackgroundService(null, null, apiClient.Object, producer.Object);
+        var client = new BaseBackgroundService(null, null, apiClient.Object, producer.Object, Microsoft.Extensions.Logging.Abstractions.NullLogger<BaseBackgroundService>.Instance);
         var nameList = new List<PlayerNameUpdate>();
         nameList.Add(new PlayerNameUpdate() { Uuid = "test", Name = "testNameChanged" });
         nameList.Add(new PlayerNameUpdate() { Uuid = "gronkhId", Name = "Gronkh" });
